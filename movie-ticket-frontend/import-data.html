@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>导入影片数据</title>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+  <h1>导入影片数据</h1>
+  <div id="result"></div>
+  
+  <script type="module">
+    import { mockMovies } from './src/api/mockData.js'
+    
+    // 转换状态字符串为数字
+    const statusMap = {
+      '上映中': 1,
+      '即将上映': 2,
+      '已下线': 3
+    }
+    
+    // 导入影片数据
+    const importMovies = async () => {
+      const resultDiv = document.getElementById('result')
+      resultDiv.innerHTML = '<p>开始导入影片数据...</p>'
+      
+      try {
+        for (const movie of mockMovies) {
+          // 转换状态
+          const status = statusMap[movie.status] || 1
+          
+          // 构建影片对象
+          const movieData = {
+            title: movie.title,
+            englishTitle: movie.englishTitle,
+            category: movie.category,
+            duration: movie.duration,
+            rating: movie.rating,
+            status: status,
+            poster: movie.poster,
+            director: movie.director,
+            actors: movie.actors,
+            releaseDate: movie.releaseDate,
+            price: movie.price,
+            synopsis: movie.description || movie.synopsis
+          }
+          
+          // 调用后端接口
+          const response = await axios.post('http://localhost:8080/api/add/movies', movieData)
+          resultDiv.innerHTML += `<p>导入影片 ${movie.title} 成功</p>`
+          console.log(`导入影片 ${movie.title} 成功:`, response.data)
+        }
+        
+        resultDiv.innerHTML += '<p>影片数据导入完成！</p>'
+      } catch (error) {
+        resultDiv.innerHTML += `<p style="color: red;">导入影片数据失败: ${error.message}</p>`
+        console.error('导入影片数据失败:', error)
+      }
+    }
+    
+    // 执行导入
+    importMovies()
+  </script>
+</body>
+</html>
