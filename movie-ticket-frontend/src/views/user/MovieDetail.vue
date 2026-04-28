@@ -67,7 +67,7 @@
                 </div>
                 <div class="schedule-info">
                   <div class="hall-name">{{ schedule.hallName }}</div>
-                  <div class="cinema-name">万达影城（CBD店）</div>
+                  <div class="cinema-name">{{ schedule.cinemaName || '未知影院' }}</div>
                 </div>
                 <div class="schedule-price">
                   <span class="price">¥{{ schedule.price }}</span>
@@ -188,8 +188,8 @@
 import { ref, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { Ticket, Star, Pointer, EditPen, Plus } from '@element-plus/icons-vue'
-import { mockSchedules, mockMovies } from '@/api/mockData'
-import { commentAPI, movieAPI } from '@/api/api'
+import { mockMovies } from '@/api/mockData'
+import { commentAPI, movieAPI, scheduleAPI } from '@/api/api'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
@@ -197,7 +197,7 @@ const movieId = parseInt(route.params.id)
 const userStore = useUserStore()
 
 const movie = ref({})
-const schedules = ref(mockSchedules.filter(s => s.movieId === movieId).slice(0, 5))
+const schedules = ref([])
 const comments = ref([])
 const relatedMovies = ref([])
 
@@ -331,8 +331,21 @@ const loadMovieDetail = () => {
     })
 }
 
+const loadSchedules = () => {
+  scheduleAPI.getSchedules({ movieId })
+    .then(response => {
+      if (response.data.code === 200) {
+        schedules.value = response.data.data.slice(0, 5)
+      }
+    })
+    .catch(error => {
+      console.error('加载排期失败:', error)
+    })
+}
+
 loadMovieDetail()
 loadComments()
+loadSchedules()
 </script>
 
 <style scoped>

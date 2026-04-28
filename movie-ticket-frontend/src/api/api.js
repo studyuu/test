@@ -197,6 +197,33 @@ export const userAPI = {
   }
 }
 
+export const scheduleAPI = {
+  // 获取排期列表（支持按影片ID或影院ID筛选）
+  getSchedules: (params) => {
+    return instance.get('/schedules', { params })
+  },
+
+  // 获取排期详情
+  getScheduleById: (id) => {
+    return instance.get(`/schedules/${id}`)
+  },
+
+  // 添加排期
+  addSchedule: (data) => {
+    return instance.post('/schedules', data)
+  },
+
+  // 更新排期信息
+  updateSchedule: (id, data) => {
+    return instance.put(`/schedules/${id}`, data)
+  },
+
+  // 删除排期
+  deleteSchedule: (id) => {
+    return instance.delete(`/schedules/${id}`)
+  }
+}
+
 export const uploadAPI = {
   // 上传文件（图片等）
   uploadFile: (file) => {
