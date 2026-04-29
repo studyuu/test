@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public class ScheduleController {
     @Autowired
     private ScheduleRepository scheduleRepository;
-    
+
     @Autowired
     private MovieRepository movieRepository;
 
@@ -27,20 +27,20 @@ public class ScheduleController {
             @RequestParam(required = false) Long movieId,
             @RequestParam(required = false) Long cinemaId) {
         Map<String, Object> response = new HashMap<>();
-        
+
         List<Schedule> schedules = scheduleRepository.findAll();
-        
+
         if (movieId != null) {
             schedules = schedules.stream()
-                    .filter(s -> s.getMovieId().equals(movieId))
+                    .filter(s -> movieId.equals(s.getMovieId()))
                     .collect(Collectors.toList());
         }
-        
+
         List<Map<String, Object>> scheduleList = schedules.stream()
                 .filter(s -> s.getIsDeleted() == null || s.getIsDeleted() == 0)
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
-        
+
         response.put("code", 200);
         response.put("message", "success");
         response.put("data", scheduleList);
@@ -50,7 +50,7 @@ public class ScheduleController {
     @GetMapping("/schedules/{id}")
     public Map<String, Object> getScheduleById(@PathVariable Long id) {
         Map<String, Object> response = new HashMap<>();
-        
+
         Optional<Schedule> scheduleOptional = scheduleRepository.findById(id);
         if (scheduleOptional.isPresent()) {
             response.put("code", 200);
@@ -61,28 +61,34 @@ public class ScheduleController {
             response.put("message", "排期不存在");
             response.put("data", null);
         }
-        
+
         return response;
     }
 
     @PostMapping("/schedules")
     public Map<String, Object> addSchedule(@RequestBody Schedule schedule) {
         Map<String, Object> response = new HashMap<>();
-        
+
         if (schedule.getMovieId() == null) {
             response.put("code", 400);
             response.put("message", "影片ID不能为空");
             response.put("data", null);
             return response;
         }
-        
+
         if (schedule.getStatus() == null) {
             schedule.setStatus(1);
         }
+
+        // 设置必填字段的默认值
+        if (schedule.getHallId() == null) {
+            schedule.setHallId(1L);
+        }
+
         schedule.setIsDeleted(0);
-        
+
         Schedule savedSchedule = scheduleRepository.save(schedule);
-        
+
         response.put("code", 200);
         response.put("message", "添加成功");
         response.put("data", convertToResponse(savedSchedule));
@@ -92,11 +98,11 @@ public class ScheduleController {
     @PutMapping("/schedules/{id}")
     public Map<String, Object> updateSchedule(@PathVariable Long id, @RequestBody Schedule schedule) {
         Map<String, Object> response = new HashMap<>();
-        
+
         Optional<Schedule> existingOptional = scheduleRepository.findById(id);
         if (existingOptional.isPresent()) {
             Schedule existing = existingOptional.get();
-            
+
             if (schedule.getHallId() != null) {
                 existing.setHallId(schedule.getHallId());
             }
@@ -115,9 +121,9 @@ public class ScheduleController {
             if (schedule.getStatus() != null) {
                 existing.setStatus(schedule.getStatus());
             }
-            
+
             Schedule updated = scheduleRepository.save(existing);
-            
+
             response.put("code", 200);
             response.put("message", "更新成功");
             response.put("data", convertToResponse(updated));
@@ -126,20 +132,20 @@ public class ScheduleController {
             response.put("message", "排期不存在");
             response.put("data", null);
         }
-        
+
         return response;
     }
 
     @DeleteMapping("/schedules/{id}")
     public Map<String, Object> deleteSchedule(@PathVariable Long id) {
         Map<String, Object> response = new HashMap<>();
-        
+
         Optional<Schedule> existingOptional = scheduleRepository.findById(id);
         if (existingOptional.isPresent()) {
             Schedule schedule = existingOptional.get();
             schedule.setIsDeleted(1);
             scheduleRepository.save(schedule);
-            
+
             response.put("code", 200);
             response.put("message", "删除成功");
             response.put("data", null);
@@ -148,7 +154,7 @@ public class ScheduleController {
             response.put("message", "排期不存在");
             response.put("data", null);
         }
-        
+
         return response;
     }
 
@@ -164,12 +170,14 @@ public class ScheduleController {
         map.put("status", schedule.getStatus());
         map.put("createTime", schedule.getCreateTime());
         map.put("updateTime", schedule.getUpdateTime());
-        
-        Optional<Movie> movie = movieRepository.findById(schedule.getMovieId());
-        movie.ifPresent(m -> map.put("movieName", m.getTitle()));
-        
+
+        if (schedule.getMovieId() != null) {
+            Optional<Movie> movie = movieRepository.findById(schedule.getMovieId());
+            movie.ifPresent(m -> map.put("movieName", m.getTitle()));
+        }
+
         map.put("cinemaName", "万达影城（CBD店）");
-        
+
         return map;
     }
 }

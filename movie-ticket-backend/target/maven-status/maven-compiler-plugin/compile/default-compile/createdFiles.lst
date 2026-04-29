@@ -1,12 +1,19 @@
+com\example\movieticket\repository\SysUserRepository.class
 com\example\movieticket\repository\CommentRepository.class
+com\example\movieticket\entity\CommentLike.class
 com\example\movieticket\controller\CinemaController.class
 com\example\movieticket\repository\CinemaRepository.class
+com\example\movieticket\repository\CommentLikeRepository.class
 com\example\movieticket\entity\Banner.class
 com\example\movieticket\service\BannerService.class
 com\example\movieticket\config\DataInitializer.class
 com\example\movieticket\entity\Comment.class
+com\example\movieticket\controller\AuthController.class
+com\example\movieticket\controller\ScheduleController.class
 com\example\movieticket\service\CommentService.class
 com\example\movieticket\entity\Movie.class
+com\example\movieticket\entity\SysUser.class
+com\example\movieticket\controller\UserController.class
 com\example\movieticket\config\CorsConfig.class
 com\example\movieticket\MovieTicketApplication.class
 com\example\movieticket\service\MovieService.class
@@ -17,5 +24,7 @@ com\example\movieticket\controller\BannerController.class
 com\example\movieticket\repository\BannerRepository.class
 com\example\movieticket\entity\Cinema.class
 com\example\movieticket\service\CinemaService.class
+com\example\movieticket\repository\ScheduleRepository.class
 com\example\movieticket\controller\UploadController.class
+com\example\movieticket\entity\Schedule.class
 com\example\movieticket\controller\HomeController.class
