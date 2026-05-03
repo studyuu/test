@@ -1,16 +1,17 @@
 package com.example.movieticket.controller;
 
+import com.example.movieticket.entity.Cinema;
 import com.example.movieticket.entity.Movie;
 import com.example.movieticket.entity.Schedule;
+import com.example.movieticket.entity.Seat;
+import com.example.movieticket.repository.CinemaRepository;
 import com.example.movieticket.repository.MovieRepository;
 import com.example.movieticket.repository.ScheduleRepository;
+import com.example.movieticket.repository.SeatRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -21,6 +22,12 @@ public class ScheduleController {
 
     @Autowired
     private MovieRepository movieRepository;
+
+    @Autowired
+    private CinemaRepository cinemaRepository;
+
+    @Autowired
+    private SeatRepository seatRepository;
 
     @GetMapping("/schedules")
     public Map<String, Object> getSchedules(
@@ -65,6 +72,101 @@ public class ScheduleController {
         return response;
     }
 
+    @GetMapping("/schedules/{id}/detail")
+    public Map<String, Object> getScheduleDetail(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
+
+        Optional<Schedule> scheduleOpt = scheduleRepository.findById(id);
+        if (!scheduleOpt.isPresent()) {
+            response.put("code", 404);
+            response.put("message", "排期不存在");
+            response.put("data", null);
+            return response;
+        }
+
+        Schedule schedule = scheduleOpt.get();
+        Optional<Movie> movieOpt = movieRepository.findById(schedule.getMovieId());
+        Optional<Cinema> cinemaOpt = Optional.empty();
+        if (schedule.getCinemaId() != null) {
+            cinemaOpt = cinemaRepository.findById(schedule.getCinemaId());
+        }
+
+        if (!movieOpt.isPresent()) {
+            response.put("code", 404);
+            response.put("message", "影片不存在");
+            response.put("data", null);
+            return response;
+        }
+
+        Movie movie = movieOpt.get();
+        Cinema cinema = cinemaOpt.isPresent() ? cinemaOpt.get() : null;
+
+        List<Seat> seats = seatRepository.findByScheduleId(schedule.getId());
+
+        Map<String, Object> scheduleData = new HashMap<>();
+        scheduleData.put("id", schedule.getId());
+        scheduleData.put("movieId", schedule.getMovieId());
+        scheduleData.put("cinemaId", schedule.getCinemaId());
+        scheduleData.put("cinemaName", schedule.getCinemaName());
+        scheduleData.put("hallName", schedule.getHallName());
+        scheduleData.put("startTime", schedule.getStartTime());
+        scheduleData.put("endTime", schedule.getEndTime());
+        scheduleData.put("price", schedule.getPrice());
+        scheduleData.put("status", schedule.getStatus());
+
+        Map<String, Object> movieData = new HashMap<>();
+        movieData.put("id", movie.getMovieId());
+        movieData.put("title", movie.getTitle());
+        movieData.put("poster", movie.getPoster());
+
+        List<Map<String, Object>> seatsData = new ArrayList<>();
+        for (Seat seat : seats) {
+            Map<String, Object> seatMap = new HashMap<>();
+            seatMap.put("id", seat.getId());
+            seatMap.put("row", seat.getRowNum());
+            seatMap.put("rowLabel", seat.getRowLabel());
+            seatMap.put("col", seat.getColNum());
+            seatMap.put("colLabel", seat.getColLabel());
+            seatMap.put("status", seat.getStatus());
+            seatsData.add(seatMap);
+        }
+
+        if (seats.isEmpty()) {
+            String[] rowLabels = { "A", "B", "C", "D", "E", "F", "G", "H" };
+            for (int rowNum = 1; rowNum <= 8; rowNum++) {
+                for (int colNum = 1; colNum <= 12; colNum++) {
+                    Seat seat = new Seat();
+                    seat.setScheduleId(schedule.getId());
+                    seat.setRowNum(rowNum);
+                    seat.setRowLabel(rowLabels[rowNum - 1]);
+                    seat.setColNum(colNum);
+                    seat.setColLabel(String.valueOf(colNum));
+                    seat.setStatus("available");
+                    seatRepository.save(seat);
+
+                    Map<String, Object> seatMap = new HashMap<>();
+                    seatMap.put("id", seat.getId());
+                    seatMap.put("row", seat.getRowNum());
+                    seatMap.put("rowLabel", seat.getRowLabel());
+                    seatMap.put("col", seat.getColNum());
+                    seatMap.put("colLabel", seat.getColLabel());
+                    seatMap.put("status", seat.getStatus());
+                    seatsData.add(seatMap);
+                }
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("schedule", scheduleData);
+        result.put("movie", movieData);
+        result.put("seats", seatsData);
+
+        response.put("code", 200);
+        response.put("message", "success");
+        response.put("data", result);
+        return response;
+    }
+
     @PostMapping("/schedules")
     public Map<String, Object> addSchedule(@RequestBody Schedule schedule) {
         Map<String, Object> response = new HashMap<>();
@@ -76,14 +178,23 @@ public class ScheduleController {
             return response;
         }
 
+        if (schedule.getCinemaId() == null) {
+            response.put("code", 400);
+            response.put("message", "影院ID不能为空");
+            response.put("data", null);
+            return response;
+        }
+
         if (schedule.getStatus() == null) {
             schedule.setStatus(1);
         }
 
-        // 设置必填字段的默认值
         if (schedule.getHallId() == null) {
             schedule.setHallId(1L);
         }
+
+        Optional<Cinema> cinema = cinemaRepository.findById(schedule.getCinemaId());
+        cinema.ifPresent(c -> schedule.setCinemaName(c.getCinemaName()));
 
         schedule.setIsDeleted(0);
 
@@ -103,6 +214,11 @@ public class ScheduleController {
         if (existingOptional.isPresent()) {
             Schedule existing = existingOptional.get();
 
+            if (schedule.getCinemaId() != null) {
+                existing.setCinemaId(schedule.getCinemaId());
+                Optional<Cinema> cinema = cinemaRepository.findById(schedule.getCinemaId());
+                cinema.ifPresent(c -> existing.setCinemaName(c.getCinemaName()));
+            }
             if (schedule.getHallId() != null) {
                 existing.setHallId(schedule.getHallId());
             }
@@ -162,6 +278,8 @@ public class ScheduleController {
         Map<String, Object> map = new HashMap<>();
         map.put("id", schedule.getId());
         map.put("movieId", schedule.getMovieId());
+        map.put("cinemaId", schedule.getCinemaId());
+        map.put("cinemaName", schedule.getCinemaName());
         map.put("hallId", schedule.getHallId());
         map.put("hallName", schedule.getHallName());
         map.put("startTime", schedule.getStartTime());
@@ -175,8 +293,6 @@ public class ScheduleController {
             Optional<Movie> movie = movieRepository.findById(schedule.getMovieId());
             movie.ifPresent(m -> map.put("movieName", m.getTitle()));
         }
-
-        map.put("cinemaName", "万达影城（CBD店）");
 
         return map;
     }

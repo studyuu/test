@@ -91,6 +91,26 @@ export const movieAPI = {
   // 删除电影
   deleteMovie: (id) => {
     return instance.delete(`/movies/${id}`)
+  },
+
+  // 添加想看
+  addWish: (movieId) => {
+    return instance.post(`/movies/${movieId}/wish`)
+  },
+
+  // 取消想看
+  removeWish: (movieId) => {
+    return instance.delete(`/movies/${movieId}/wish`)
+  },
+
+  // 检查是否已想看
+  checkWish: (movieId) => {
+    return instance.get(`/movies/${movieId}/wish`)
+  },
+
+  // 获取用户想看列表
+  getWishList: (params) => {
+    return instance.get('/movies/wishlist', { params })
   }
 }
 
@@ -208,6 +228,11 @@ export const scheduleAPI = {
     return instance.get(`/schedules/${id}`)
   },
 
+  // 获取排期详情（含座位信息）
+  getScheduleDetail: (id) => {
+    return instance.get(`/schedules/${id}/detail`)
+  },
+
   // 添加排期
   addSchedule: (data) => {
     return instance.post('/schedules', data)
@@ -221,6 +246,18 @@ export const scheduleAPI = {
   // 删除排期
   deleteSchedule: (id) => {
     return instance.delete(`/schedules/${id}`)
+  }
+}
+
+export const orderAPI = {
+  // 创建订单
+  createOrder: (data) => {
+    return instance.post('/orders', data)
+  },
+
+  // 获取订单详情
+  getOrderById: (orderId) => {
+    return instance.get(`/orders/${orderId}`)
   }
 }
 

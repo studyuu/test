@@ -1,14 +1,29 @@
 <template>
   <div class="select-seat-page">
     <div class="container">
-      <!-- 影片信息 -->
-      <div class="movie-info-bar">
-        <img :src="movie.poster" class="movie-thumb" />
-        <div class="movie-info">
-          <h2>{{ movie.title }}</h2>
-          <p>{{ schedule.startTime }} | {{ schedule.hallName }}</p>
-        </div>
+      <!-- 加载状态 -->
+      <div v-if="loading" class="loading-container">
+        <el-spinner size="large" />
+        <p>加载中...</p>
       </div>
+      
+      <!-- 错误状态 -->
+      <div v-else-if="error" class="error-container">
+        <el-icon name="warning" :size="48" />
+        <p>{{ error }}</p>
+        <el-button @click="loadScheduleDetail">重新加载</el-button>
+      </div>
+      
+      <!-- 内容 -->
+      <template v-else>
+        <!-- 影片信息 -->
+        <div class="movie-info-bar">
+          <img :src="movie?.poster" class="movie-thumb" />
+          <div class="movie-info">
+            <h2>{{ movie?.title }}</h2>
+            <p>{{ schedule?.startTime }} | {{ schedule?.hallName }}</p>
+          </div>
+        </div>
 
       <!-- 选座区域 -->
       <div class="seat-selection">
@@ -73,30 +88,78 @@
           </el-button>
         </div>
       </div>
+        </template>
     </div>
+    
+    <!-- 支付二维码弹窗 -->
+    <el-dialog
+      v-model="showPaymentDialog"
+      title="订单支付"
+      width="400px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
+      <div class="payment-dialog">
+        <div class="payment-info">
+          <p class="order-title">{{ movie?.title }}</p>
+          <p class="order-seats">座位：{{ selectedSeats.map(s => `${s.rowLabel}排${s.colLabel}座`).join('、') }}</p>
+          <p class="order-price">¥{{ totalPrice }}</p>
+        </div>
+        
+        <div class="qrcode-container">
+          <div class="qrcode-placeholder">
+            <div class="qrcode-box">
+              <span class="qrcode-icon">📱</span>
+            </div>
+            <p class="qrcode-tip">请使用微信或支付宝扫码支付</p>
+            <p class="qrcode-hint">支付成功后自动跳转</p>
+          </div>
+        </div>
+        
+        <div class="payment-status" v-if="paymentStatus === 'paying'">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          <span>等待支付...</span>
+        </div>
+        <div class="payment-status success" v-else-if="paymentStatus === 'success'">
+          <el-icon color="#67C23A"><CircleCheck /></el-icon>
+          <span>支付成功！</span>
+        </div>
+        <div class="payment-status error" v-else-if="paymentStatus === 'error'">
+          <el-icon color="#F56C6C"><CircleClose /></el-icon>
+          <span>支付失败</span>
+        </div>
+      </div>
+      
+      <template #footer>
+        <el-button @click="handlePaymentCancel">取消支付</el-button>
+        <el-button type="primary" @click="simulatePaymentSuccess" :loading="paymentStatus === 'paying'">
+          模拟支付成功
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { mockMovies, mockSchedules } from '@/api/mockData'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Loading, CircleCheck, CircleClose } from '@element-plus/icons-vue'
+import { scheduleAPI, orderAPI } from '@/api/api'
 
 const route = useRoute()
 const router = useRouter()
 const scheduleId = parseInt(route.params.scheduleId)
 
-const schedule = computed(() => {
-  return mockSchedules.find(s => s.id === scheduleId) || mockSchedules[0]
-})
-
-const movie = computed(() => {
-  return mockMovies.find(m => m.id === schedule.value.movieId) || mockMovies[0]
-})
-
-const seats = ref(schedule.value.seats || [])
+const loading = ref(true)
+const error = ref(null)
+const schedule = ref(null)
+const movie = ref(null)
+const seats = ref([])
 const selectedSeats = ref([])
+const showPaymentDialog = ref(false)
+const currentOrder = ref(null)
+const paymentStatus = ref('idle') // idle, paying, success, error
 
 const seatRows = computed(() => {
   const rows = [...new Set(seats.value.map(s => s.rowLabel))]
@@ -116,7 +179,7 @@ const toggleSeat = (seat) => {
     ElMessage.warning('该座位已售出')
     return
   }
-  
+
   const index = selectedSeats.value.findIndex(s => s.row === seat.row && s.col === seat.col)
   if (index > -1) {
     selectedSeats.value.splice(index, 1)
@@ -130,16 +193,99 @@ const toggleSeat = (seat) => {
 }
 
 const totalPrice = computed(() => {
+  if (!schedule.value || !schedule.value.price) return 0
   return selectedSeats.value.length * schedule.value.price
 })
 
-const confirmOrder = () => {
-  const orderId = 'ORD' + Date.now()
-  ElMessage.success('选座成功，正在生成订单...')
-  setTimeout(() => {
-    router.push(`/order/${orderId}`)
-  }, 1000)
+const loadScheduleDetail = async () => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    const response = await scheduleAPI.getScheduleDetail(scheduleId)
+    if (response.data.code === 200) {
+      const data = response.data.data
+      if (!data || !data.schedule || !data.movie) {
+        error.value = '获取排期信息失败'
+        return
+      }
+      schedule.value = data.schedule
+      movie.value = data.movie
+      seats.value = data.seats || []
+    } else {
+      error.value = response.data.message || '获取排期信息失败'
+    }
+  } catch (err) {
+    console.error('加载排期详情失败:', err)
+    error.value = '加载排期详情失败，请稍后重试'
+    ElMessage.error('加载排期详情失败')
+  } finally {
+    loading.value = false
+  }
 }
+
+const confirmOrder = async () => {
+  if (selectedSeats.value.length === 0) {
+    ElMessage.warning('请选择座位')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm('确定要选择这些座位吗？', '确认选座', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'success'
+    })
+
+    const response = await orderAPI.createOrder({
+      scheduleId: scheduleId,
+      userId: 1,
+      selectedSeats: selectedSeats.value.map(seat => ({
+        row: seat.row,
+        rowLabel: seat.rowLabel,
+        col: seat.col,
+        colLabel: seat.colLabel
+      }))
+    })
+
+    if (response.data.code === 200) {
+      currentOrder.value = response.data.data
+      paymentStatus.value = 'idle'
+      showPaymentDialog.value = true
+    } else {
+      ElMessage.error(response.data.message)
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('创建订单失败:', error)
+      ElMessage.error('创建订单失败')
+    }
+  }
+}
+
+const simulatePaymentSuccess = () => {
+  paymentStatus.value = 'paying'
+  
+  setTimeout(() => {
+    paymentStatus.value = 'success'
+    ElMessage.success('支付成功！')
+    
+    setTimeout(() => {
+      showPaymentDialog.value = false
+      router.push(`/order/${currentOrder.value.orderId}`)
+    }, 1500)
+  }, 2000)
+}
+
+const handlePaymentCancel = () => {
+  showPaymentDialog.value = false
+  paymentStatus.value = 'idle'
+  ElMessage.warning('您取消了支付')
+}
+
+onMounted(() => {
+  loadScheduleDetail()
+})
 </script>
 
 <style scoped>
@@ -153,6 +299,32 @@ const confirmOrder = () => {
   max-width: 1000px;
   margin: 0 auto;
   padding: 0 40px;
+}
+
+.loading-container, .error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 0;
+  color: #666;
+}
+
+.loading-container p, .error-container p {
+  margin-top: 20px;
+  font-size: 16px;
+}
+
+.error-container {
+  color: #ff6b6b;
+}
+
+.error-container el-icon {
+  color: #ff6b6b;
+}
+
+.error-container el-button {
+  margin-top: 20px;
 }
 
 .movie-info-bar {
@@ -331,5 +503,86 @@ const confirmOrder = () => {
   font-size: 32px;
   color: #ff6b6b;
   font-weight: bold;
+}
+
+.payment-dialog {
+  text-align: center;
+}
+
+.payment-info {
+  margin-bottom: 30px;
+}
+
+.payment-info .order-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.payment-info .order-seats {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.payment-info .order-price {
+  font-size: 28px;
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+.qrcode-container {
+  margin: 30px 0;
+}
+
+.qrcode-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qrcode-box {
+  width: 200px;
+  height: 200px;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9f9f9;
+}
+
+.qrcode-icon {
+  font-size: 60px;
+}
+
+.qrcode-tip {
+  margin-top: 16px;
+  font-size: 15px;
+  color: #666;
+}
+
+.qrcode-hint {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #999;
+}
+
+.payment-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  font-size: 15px;
+}
+
+.payment-status.success {
+  color: #67C23A;
+}
+
+.payment-status.error {
+  color: #F56C6C;
 }
 </style>

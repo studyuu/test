@@ -33,7 +33,7 @@
 
     <el-dialog :title="editMode ? '更新排期' : '添加排期'" v-model="dialogVisible" width="500px">
       <el-form :model="formData" label-width="100px">
-        <el-form-item label="影片" prop="movieId">
+        <el-form-item label="影片" prop="movieId" required>
           <el-select v-model="formData.movieId" placeholder="请选择影片">
             <el-option
               v-for="movie in movies"
@@ -43,16 +43,26 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="影厅" prop="hallName">
+        <el-form-item label="影院" prop="cinemaId" required>
+          <el-select v-model="formData.cinemaId" placeholder="请选择影院">
+            <el-option
+              v-for="cinema in cinemas"
+              :key="cinema.cinemaId"
+              :label="cinema.cinemaName"
+              :value="cinema.cinemaId"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="影厅" prop="hallName" required>
           <el-input v-model="formData.hallName" placeholder="请输入影厅名称" />
         </el-form-item>
-        <el-form-item label="开始时间" prop="startTime">
+        <el-form-item label="开始时间" prop="startTime" required>
           <el-input v-model="formData.startTime" type="datetime-local" />
         </el-form-item>
-        <el-form-item label="结束时间" prop="endTime">
+        <el-form-item label="结束时间" prop="endTime" required>
           <el-input v-model="formData.endTime" type="datetime-local" />
         </el-form-item>
-        <el-form-item label="票价" prop="price">
+        <el-form-item label="票价" prop="price" required>
           <el-input v-model.number="formData.price" type="number" placeholder="请输入票价" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
@@ -73,13 +83,15 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { scheduleAPI, movieAPI } from '@/api/api'
+import { scheduleAPI, movieAPI, cinemaAPI } from '@/api/api'
 
 const schedules = ref([])
 const movies = ref([])
+const cinemas = ref([])
 const dialogVisible = ref(false)
 const formData = ref({
   movieId: '',
+  cinemaId: '',
   hallName: '',
   startTime: '',
   endTime: '',
@@ -111,11 +123,23 @@ const loadMovies = async () => {
   }
 }
 
+const loadCinemas = async () => {
+  try {
+    const response = await cinemaAPI.getCinemas()
+    if (response.data.code === 200) {
+      cinemas.value = response.data.data.content || response.data.data.list || response.data.data
+    }
+  } catch (error) {
+    console.error('加载影院列表失败:', error)
+  }
+}
+
 const handleAdd = () => {
   editMode.value = false
   editScheduleId.value = null
   formData.value = {
     movieId: '',
+    cinemaId: '',
     hallName: '',
     startTime: '',
     endTime: '',
@@ -130,6 +154,7 @@ const handleEdit = (row) => {
   editScheduleId.value = row.id
   formData.value = {
     movieId: row.movieId,
+    cinemaId: row.cinemaId,
     hallName: row.hallName,
     startTime: formatDateTime(row.startTime),
     endTime: formatDateTime(row.endTime),
@@ -146,13 +171,14 @@ const formatDateTime = (dateTimeStr) => {
 }
 
 const handleSubmit = async () => {
-  if (!formData.value.movieId || !formData.value.hallName || !formData.value.startTime || !formData.value.endTime || !formData.value.price) {
+  if (!formData.value.movieId || !formData.value.cinemaId || !formData.value.hallName || !formData.value.startTime || !formData.value.endTime || !formData.value.price) {
     ElMessage.error('请填写完整信息')
     return
   }
 
   const submitData = {
     movieId: formData.value.movieId,
+    cinemaId: formData.value.cinemaId,
     hallName: formData.value.hallName,
     startTime: formData.value.startTime.replace('T', ' ') + ':00',
     endTime: formData.value.endTime.replace('T', ' ') + ':00',
@@ -205,6 +231,7 @@ const handleDelete = (row) => {
 onMounted(() => {
   loadSchedules()
   loadMovies()
+  loadCinemas()
 })
 </script>
 

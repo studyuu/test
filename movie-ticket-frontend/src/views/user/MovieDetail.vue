@@ -36,9 +36,9 @@
                 <el-icon><Ticket /></el-icon>
                 特惠购票
               </el-button>
-              <el-button size="large" round>
-                <el-icon><Star /></el-icon>
-                想看
+              <el-button size="large" round :type="isWished ? 'warning' : ''" @click="toggleWish">
+                <el-icon><Star class="star-icon" :class="{ filled: isWished }" /></el-icon>
+                {{ isWished ? '已想看' : '想看' }}
               </el-button>
             </div>
           </div>
@@ -59,8 +59,22 @@
           <!-- 选座购票 -->
           <section class="section" id="schedule-section">
             <h2 class="section-title">选座购票</h2>
+            
+            <!-- 日期筛选 -->
+            <div v-if="dateOptions.length > 0" class="date-filter">
+              <div 
+                v-for="date in dateOptions" 
+                :key="date"
+                class="date-option"
+                :class="{ active: selectedDate === date }"
+                @click="selectedDate = date"
+              >
+                {{ formatDate(date) }}
+              </div>
+            </div>
+            
             <div class="schedule-list">
-              <div v-for="schedule in schedules" :key="schedule.id" class="schedule-item">
+              <div v-for="schedule in filteredSchedules" :key="schedule.id" class="schedule-item">
                 <div class="schedule-time">
                   <div class="start-time">{{ formatTime(schedule.startTime) }}</div>
                   <div class="end-time">{{ formatTime(schedule.endTime) }}散场</div>
@@ -75,6 +89,10 @@
                 <el-button type="danger" @click="$router.push(`/select-seat/${schedule.id}`)">
                   选座购票
                 </el-button>
+              </div>
+              
+              <div v-if="filteredSchedules.length === 0" class="empty-schedule">
+                <p>暂无可购票的场次</p>
               </div>
             </div>
           </section>
@@ -128,7 +146,7 @@
           <div class="sidebar-section">
             <h3 class="sidebar-title">相关推荐</h3>
             <div class="related-list">
-              <div v-for="m in relatedMovies" :key="m.id" class="related-item" @click="$router.push(`/movie/${m.id}`)">
+              <div v-for="m in relatedMovies" :key="m.id" class="related-item" @click="goToMovie(m.id)">
                 <img :src="m.poster" :alt="m.title" />
                 <div class="related-info">
                   <h4>{{ m.title }}</h4>
@@ -185,21 +203,27 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, reactive, watch, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { Ticket, Star, Pointer, EditPen, Plus } from '@element-plus/icons-vue'
 import { mockMovies } from '@/api/mockData'
 import { commentAPI, movieAPI, scheduleAPI } from '@/api/api'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
-const movieId = parseInt(route.params.id)
+const router = useRouter()
+const movieId = ref(parseInt(route.params.id))
 const userStore = useUserStore()
 
 const movie = ref({})
 const schedules = ref([])
 const comments = ref([])
 const relatedMovies = ref([])
+const isWished = ref(false)
+
+const dateOptions = ref([])
+const selectedDate = ref('')
 
 const commentDialogVisible = ref(false)
 const commentFormRef = ref(null)
@@ -222,6 +246,54 @@ const formatTime = (datetime) => {
 
 const scrollToSchedule = () => {
   document.getElementById('schedule-section')?.scrollIntoView({ behavior: 'smooth' })
+}
+
+const goToMovie = (movieId) => {
+  router.push(`/movie/${movieId}`)
+}
+
+const checkIsWished = async () => {
+  if (!userStore.token) {
+    isWished.value = false
+    return
+  }
+  
+  try {
+    const response = await movieAPI.checkWish(movieId.value)
+    if (response.data.code === 200) {
+      isWished.value = response.data.data
+    }
+  } catch (error) {
+    console.error('检查想看状态失败:', error)
+    isWished.value = false
+  }
+}
+
+const toggleWish = async () => {
+  if (!userStore.token) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  try {
+    if (isWished.value) {
+      const response = await movieAPI.removeWish(movieId.value)
+      if (response.data.code === 200) {
+        isWished.value = false
+        ElMessage.success('已取消想看')
+      }
+    } else {
+      const response = await movieAPI.addWish(movieId.value)
+      if (response.data.code === 200) {
+        isWished.value = true
+        ElMessage.success('已添加到想看列表')
+      }
+    }
+  } catch (error) {
+    console.error('操作失败:', error)
+    ElMessage.error('操作失败')
+  }
 }
 
 const openCommentDialog = () => {
@@ -247,7 +319,7 @@ const submitComment = async () => {
     }
     
     const newComment = {
-      movieId: movieId,
+      movieId: movieId.value,
       userId: userStore.userInfo.id || userStore.userInfo.userId || 1,
       rating: commentForm.rating,
       content: commentForm.content,
@@ -271,7 +343,7 @@ const submitComment = async () => {
 }
 
 const loadComments = () => {
-  commentAPI.getCommentsByMovieId(movieId)
+  commentAPI.getCommentsByMovieId(movieId.value)
     .then(response => {
       if (response.data.code === 200) {
         comments.value = response.data.data
@@ -307,7 +379,7 @@ const handleLike = (commentId) => {
 }
 
 const loadMovieDetail = () => {
-  movieAPI.getMovieById(movieId)
+  movieAPI.getMovieById(movieId.value)
     .then(response => {
       if (response.data.code === 200) {
         const data = response.data.data
@@ -316,7 +388,7 @@ const loadMovieDetail = () => {
           id: data.movieId || data.id,
           description: data.synopsis || data.description
         }
-        relatedMovies.value = mockMovies.filter(m => m.id !== movieId).slice(0, 4)
+        relatedMovies.value = mockMovies.filter(m => m.id !== movieId.value).slice(0, 4)
       }
     })
     .catch(error => {
@@ -327,15 +399,19 @@ const loadMovieDetail = () => {
         id: found.id,
         description: found.description
       }
-      relatedMovies.value = mockMovies.filter(m => m.id !== movieId).slice(0, 4)
+      relatedMovies.value = mockMovies.filter(m => m.id !== movieId.value).slice(0, 4)
+    })
+    .finally(() => {
+      checkIsWished()
     })
 }
 
 const loadSchedules = () => {
-  scheduleAPI.getSchedules({ movieId })
+  scheduleAPI.getSchedules({ movieId: movieId.value })
     .then(response => {
       if (response.data.code === 200) {
-        schedules.value = response.data.data.slice(0, 5)
+        schedules.value = response.data.data.slice(0, 10)
+        generateDateOptions()
       }
     })
     .catch(error => {
@@ -343,9 +419,74 @@ const loadSchedules = () => {
     })
 }
 
+const generateDateOptions = () => {
+  const dates = new Set()
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  schedules.value.forEach(schedule => {
+    if (schedule.startTime) {
+      const scheduleDate = new Date(schedule.startTime)
+      scheduleDate.setHours(0, 0, 0, 0)
+      if (scheduleDate >= today) {
+        dates.add(scheduleDate.toISOString().split('T')[0])
+      }
+    }
+  })
+  
+  dateOptions.value = Array.from(dates).sort()
+  
+  if (dateOptions.value.length > 0) {
+    selectedDate.value = dateOptions.value[0]
+  }
+}
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const dateCompare = new Date(dateStr)
+  dateCompare.setHours(0, 0, 0, 0)
+  
+  const diffDays = Math.floor((dateCompare - today) / (1000 * 60 * 60 * 24))
+  
+  if (diffDays === 0) return '今天'
+  if (diffDays === 1) return '明天'
+  if (diffDays === 2) return '后天'
+  
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  return `${month}月${day}日`
+}
+
+const filteredSchedules = computed(() => {
+  if (!selectedDate.value || schedules.value.length === 0) {
+    return schedules.value
+  }
+  
+  return schedules.value.filter(schedule => {
+    if (!schedule.startTime) return false
+    return schedule.startTime.startsWith(selectedDate.value)
+  }).filter(schedule => {
+    const now = new Date()
+    const scheduleTime = new Date(schedule.startTime)
+    return scheduleTime > now
+  })
+})
+
 loadMovieDetail()
 loadComments()
 loadSchedules()
+
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    movieId.value = parseInt(newId)
+    loadMovieDetail()
+    loadComments()
+    loadSchedules()
+  }
+})
 </script>
 
 <style scoped>
@@ -466,6 +607,10 @@ loadSchedules()
   font-size: 16px;
 }
 
+.star-icon.filled {
+  color: #ffb800;
+}
+
 /* 详情内容区 */
 .detail-content {
   display: flex;
@@ -505,6 +650,33 @@ loadSchedules()
   font-size: 15px;
   line-height: 1.8;
   color: #666;
+}
+
+/* 日期筛选 */
+.date-filter {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.date-option {
+  padding: 10px 24px;
+  background: #f8f9fa;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  color: #666;
+}
+
+.date-option:hover {
+  background: #e9ecef;
+}
+
+.date-option.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
 }
 
 /* 场次列表 */
@@ -568,6 +740,20 @@ loadSchedules()
   font-size: 28px;
   color: #ff6b6b;
   font-weight: bold;
+}
+
+.empty-schedule {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #999;
+}
+
+.empty-schedule p {
+  margin-top: 12px;
+  font-size: 14px;
 }
 
 /* 评论列表 */

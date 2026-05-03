@@ -11,23 +11,23 @@ import java.util.List;
 public class BannerService {
     @Autowired
     private BannerRepository bannerRepository;
-    
+
     public List<Banner> getAllBanners() {
         return bannerRepository.findAllByOrderByOrderNumAsc();
     }
-    
+
     public Banner getBannerById(Long id) {
         return bannerRepository.findById(id).orElse(null);
     }
-    
+
     public Banner saveBanner(Banner banner) {
         return bannerRepository.save(banner);
     }
-    
+
     public void deleteBanner(Long id) {
         bannerRepository.deleteById(id);
     }
-    
+
     public List<Banner> getBanners() {
         return bannerRepository.findAllByOrderByOrderNumAsc();
     }

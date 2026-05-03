@@ -38,18 +38,65 @@
           </el-form-item>
         </el-form>
       </el-card>
+
+      <!-- 想看列表 -->
+      <el-card class="wishlist-card">
+        <template #header>
+          <div class="wishlist-header">
+            <span class="wishlist-title">
+              <el-icon><Star class="star-icon" /></el-icon>
+              我的想看
+            </span>
+            <span class="wishlist-count">{{ wishList.length }}部</span>
+          </div>
+        </template>
+        
+        <div v-if="wishList.length === 0" class="empty-state">
+          <el-icon name="film" :size="48" />
+          <p>还没有想看的电影</p>
+          <el-button type="primary" @click="goToMovies">去看看</el-button>
+        </div>
+        
+        <div v-else class="wishlist-movies">
+          <div 
+            v-for="movie in wishList" 
+            :key="movie.movieId" 
+            class="wishlist-item"
+            @click="goToMovie(movie.movieId)"
+          >
+            <img :src="movie.poster" :alt="movie.title" class="wishlist-poster" />
+            <div class="wishlist-info">
+              <h4>{{ movie.title }}</h4>
+              <p class="wishlist-category">{{ movie.category }}</p>
+              <p class="wishlist-rating">评分：{{ movie.rating }}分</p>
+              <p class="wishlist-date">上映日期：{{ movie.releaseDate }}</p>
+            </div>
+            <div class="wishlist-actions">
+              <el-button 
+                type="text" 
+                @click.stop="removeFromWishList(movie.movieId)"
+                class="remove-btn"
+              >
+                移除
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </el-card>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import { User, Camera } from '@element-plus/icons-vue'
-import { userAPI, uploadAPI } from '@/api/api'
+import { User, Camera, Star } from '@element-plus/icons-vue'
+import { userAPI, uploadAPI, movieAPI } from '@/api/api'
 
 const userStore = useUserStore()
+const router = useRouter()
 const avatarInput = ref(null)
 
 const userInfo = ref({
@@ -61,6 +108,8 @@ const userInfo = ref({
   phone: '',
   avatar: ''
 })
+
+const wishList = ref([])
 
 const loadUserInfo = async () => {
   const userId = userStore.userInfo.id || userStore.userInfo.userId || 1
@@ -132,8 +181,41 @@ const saveProfile = async () => {
   }
 }
 
+const loadWishList = async () => {
+  try {
+    const response = await movieAPI.getWishList()
+    if (response.data.code === 200) {
+      wishList.value = response.data.data.content || []
+    }
+  } catch (error) {
+    console.error('加载想看列表失败:', error)
+  }
+}
+
+const goToMovie = (movieId) => {
+  router.push(`/movie/${movieId}`)
+}
+
+const goToMovies = () => {
+  router.push('/movies')
+}
+
+const removeFromWishList = async (movieId) => {
+  try {
+    const response = await movieAPI.removeWish(movieId)
+    if (response.data.code === 200) {
+      wishList.value = wishList.value.filter(m => m.movieId !== movieId)
+      ElMessage.success('已从想看列表移除')
+    }
+  } catch (error) {
+    console.error('移除失败:', error)
+    ElMessage.error('移除失败')
+  }
+}
+
 onMounted(() => {
   loadUserInfo()
+  loadWishList()
 })
 </script>
 
@@ -199,5 +281,112 @@ onMounted(() => {
 
 .profile-form {
   max-width: 500px;
+}
+
+.wishlist-card {
+  margin-top: 20px;
+}
+
+.wishlist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wishlist-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.star-icon {
+  color: #ffb800;
+}
+
+.wishlist-count {
+  font-size: 14px;
+  color: #999;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 0;
+  color: #999;
+}
+
+.empty-state p {
+  margin: 16px 0;
+}
+
+.wishlist-movies {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wishlist-item {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.wishlist-item:hover {
+  background: #f0f0f0;
+}
+
+.wishlist-poster {
+  width: 80px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.wishlist-info {
+  flex: 1;
+}
+
+.wishlist-info h4 {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.wishlist-category {
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.wishlist-rating {
+  font-size: 13px;
+  color: #ffb800;
+  margin-bottom: 4px;
+}
+
+.wishlist-date {
+  font-size: 13px;
+  color: #999;
+}
+
+.wishlist-actions {
+  display: flex;
+  align-items: center;
+}
+
+.remove-btn {
+  color: #ff6b6b;
+}
+
+.remove-btn:hover {
+  color: #ff4757;
 }
 </style>
