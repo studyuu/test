@@ -423,13 +423,22 @@ const generateDateOptions = () => {
   const dates = new Set()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const todayStr = today.toISOString().split('T')[0]
   
   schedules.value.forEach(schedule => {
     if (schedule.startTime) {
-      const scheduleDate = new Date(schedule.startTime)
-      scheduleDate.setHours(0, 0, 0, 0)
-      if (scheduleDate >= today) {
-        dates.add(scheduleDate.toISOString().split('T')[0])
+      // 直接从字符串提取日期，避免时区问题
+      const dateStr = schedule.startTime.split(' ')[0]
+      if (dateStr >= todayStr) {
+        // 还要检查该场次是否未过期
+        const [datePart, timePart] = schedule.startTime.split(' ')
+        const [year, month, day] = datePart.split('-')
+        const [hour, minute, second] = timePart.split(':')
+        const scheduleTime = new Date(year, month - 1, day, hour, minute, second)
+        const now = new Date()
+        if (scheduleTime > now) {
+          dates.add(dateStr)
+        }
       }
     }
   })
@@ -443,36 +452,43 @@ const generateDateOptions = () => {
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
-  const date = new Date(dateStr)
+  
+  // 获取今天的日期字符串
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const dateCompare = new Date(dateStr)
-  dateCompare.setHours(0, 0, 0, 0)
+  const todayStr = today.toISOString().split('T')[0]
   
-  const diffDays = Math.floor((dateCompare - today) / (1000 * 60 * 60 * 24))
+  if (dateStr === todayStr) return '今天'
   
-  if (diffDays === 0) return '今天'
-  if (diffDays === 1) return '明天'
-  if (diffDays === 2) return '后天'
-  
-  const month = date.getMonth() + 1
-  const day = date.getDate()
-  return `${month}月${day}日`
+  // 解析日期显示
+  const [year, month, day] = dateStr.split('-')
+  return `${parseInt(month)}月${parseInt(day)}日`
 }
 
 const filteredSchedules = computed(() => {
-  if (!selectedDate.value || schedules.value.length === 0) {
-    return schedules.value
+  if (schedules.value.length === 0) {
+    return []
   }
   
-  return schedules.value.filter(schedule => {
+  // 首先过滤掉已过期的场次
+  const validSchedules = schedules.value.filter(schedule => {
     if (!schedule.startTime) return false
-    return schedule.startTime.startsWith(selectedDate.value)
-  }).filter(schedule => {
+    const [datePart, timePart] = schedule.startTime.split(' ')
+    const [year, month, day] = datePart.split('-')
+    const [hour, minute, second] = timePart.split(':')
+    const scheduleTime = new Date(year, month - 1, day, hour, minute, second)
     const now = new Date()
-    const scheduleTime = new Date(schedule.startTime)
     return scheduleTime > now
   })
+  
+  // 如果有选中日期，再按日期筛选
+  if (selectedDate.value) {
+    return validSchedules.filter(schedule => {
+      return schedule.startTime.startsWith(selectedDate.value)
+    })
+  }
+  
+  return validSchedules
 })
 
 loadMovieDetail()
@@ -657,6 +673,7 @@ watch(() => route.params.id, (newId) => {
   display: flex;
   gap: 12px;
   margin-bottom: 20px;
+  margin-top: 10px;
   flex-wrap: wrap;
 }
 

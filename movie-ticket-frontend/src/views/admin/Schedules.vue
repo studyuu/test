@@ -2,17 +2,38 @@
   <div class="admin-schedules">
     <div class="page-header">
       <h2>排期管理</h2>
-      <el-button type="primary" @click="handleAdd">添加排期</el-button>
+      <div class="header-actions">
+        <el-select v-model="status" placeholder="请选择状态筛选" style="width: 150px;margin-right: 10px;">
+          <el-option label="全部" value="all" />
+          <el-option label="可用" value="1" />
+          <el-option label="不可用" value="0" />
+        </el-select>
+        <el-input
+          v-model="searchKeyword"
+          placeholder="请输入影片名称筛选"
+          clearable
+          style="width: 200px; margin-right: 10px;"
+        />
+        <el-button type="primary" @click="handleAdd">添加排期</el-button>
+      </div>
     </div>
 
-    <el-table :data="schedules" border>
+    <el-table :data="filteredSchedules" border>
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="movieId" label="影片ID" width="100" />
       <el-table-column prop="movieName" label="影片名称" />
       <el-table-column prop="cinemaName" label="影院名称" />
       <el-table-column prop="hallName" label="影厅" />
-      <el-table-column prop="startTime" label="开始时间" />
-      <el-table-column prop="endTime" label="结束时间" />
+      <el-table-column prop="startTime" label="开始时间">
+        <template #default="{ row }">
+          {{ formatTime(row.startTime) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="endTime" label="结束时间">
+        <template #default="{ row }">
+          {{ formatTime(row.endTime) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="price" label="票价" width="100">
         <template #default="{ row }">
           ¥{{ row.price }}
@@ -20,7 +41,7 @@
       </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '可用' : '不可用' }}</el-tag>
+          <el-tag :type="isScheduleExpired(row) ? 'info' : (row.status === 1 ? 'success' : 'info')">{{ isScheduleExpired(row) ? '不可用' : (row.status === 1 ? '可用' : '不可用') }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="180">
@@ -81,13 +102,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { scheduleAPI, movieAPI, cinemaAPI } from '@/api/api'
 
 const schedules = ref([])
 const movies = ref([])
 const cinemas = ref([])
+const searchKeyword = ref('')
+const status = ref('all')
 const dialogVisible = ref(false)
 const formData = ref({
   movieId: '',
@@ -100,6 +123,40 @@ const formData = ref({
 })
 const editMode = ref(false)
 const editScheduleId = ref(null)
+
+// 判断排期是否已过期
+const isScheduleExpired = (schedule) => {
+  if (!schedule.endTime) return false
+  const [datePart, timePart] = schedule.endTime.split(' ')
+  const [year, month, day] = datePart.split('-')
+  const [hour, minute, second] = timePart.split(':')
+  const endTime = new Date(year, month - 1, day, hour, minute, second)
+  const now = new Date()
+  return endTime < now
+}
+
+// 计算属性：根据影片名称和状态过滤排期
+const filteredSchedules = computed(() => {
+  let result = schedules.value
+  
+  // 根据影片名称过滤
+  if (searchKeyword.value) {
+    result = result.filter(schedule => 
+      schedule.movieName && schedule.movieName.includes(searchKeyword.value)
+    )
+  }
+  
+  // 根据状态过滤
+  if (status.value !== 'all') {
+    result = result.filter(schedule => {
+      const isExpired = isScheduleExpired(schedule)
+      const scheduleStatus = isExpired ? 0 : schedule.status
+      return scheduleStatus === parseInt(status.value)
+    })
+  }
+  
+  return result
+})
 
 const loadSchedules = async () => {
   try {
@@ -166,8 +223,15 @@ const handleEdit = (row) => {
 
 const formatDateTime = (dateTimeStr) => {
   if (!dateTimeStr) return ''
-  const dt = new Date(dateTimeStr)
-  return dt.toISOString().slice(0, 16)
+  // 直接从字符串转换，避免时区问题
+  // 格式是 "YYYY-MM-DD HH:mm:ss"，需要转成 "YYYY-MM-DDTHH:mm"
+  return dateTimeStr.replace(' ', 'T').slice(0, 16)
+}
+
+const formatTime = (dateTimeStr) => {
+  if (!dateTimeStr) return ''
+  // 格式是 "YYYY-MM-DD HH:mm:ss"，转成 "YYYY-MM-DD HH:mm"
+  return dateTimeStr.slice(0, 16)
 }
 
 const handleSubmit = async () => {
@@ -251,5 +315,10 @@ onMounted(() => {
 
 .page-header h2 {
   margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
 }
 </style>
