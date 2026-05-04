@@ -39,6 +39,18 @@ const routes = [
         meta: { title: '订单详情', requiresAuth: true }
       },
       {
+        path: 'order/:orderId/pay',
+        name: 'OrderPay',
+        component: () => import('@/views/user/OrderPay.vue'),
+        meta: { title: '订单支付', requiresAuth: true }
+      },
+      {
+        path: 'payment/success',
+        name: 'PaymentSuccess',
+        component: () => import('@/views/user/PaymentSuccess.vue'),
+        meta: { title: '支付成功', requiresAuth: true }
+      },
+      {
         path: 'orders',
         name: 'Orders',
         component: () => import('@/views/user/Orders.vue'),

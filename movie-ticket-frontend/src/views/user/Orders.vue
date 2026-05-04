@@ -3,17 +3,21 @@
     <div class="container">
       <h1 class="page-title">我的订单</h1>
       
-      <el-tabs v-model="activeTab" class="order-tabs">
+      <el-tabs v-model="activeTab" class="order-tabs" @tab-change="loadOrders">
         <el-tab-pane label="全部" name="all" />
         <el-tab-pane label="待支付" name="unpaid" />
         <el-tab-pane label="已完成" name="completed" />
         <el-tab-pane label="已取消" name="cancelled" />
       </el-tabs>
 
-      <div class="order-list">
-        <div v-for="order in filteredOrders" :key="order.id" class="order-card">
+      <div v-if="loading" class="loading">
+        <el-loading-spinner />
+      </div>
+
+      <div v-else class="order-list">
+        <div v-for="order in orders" :key="order.orderId" class="order-card">
           <div class="order-header">
-            <span class="order-id">订单号：{{ order.id }}</span>
+            <span class="order-id">订单号：{{ order.orderId }}</span>
             <span class="order-time">{{ order.createTime }}</span>
             <el-tag :type="getStatusType(order.status)">{{ order.status }}</el-tag>
           </div>
@@ -23,38 +27,35 @@
               <h3>{{ order.movieTitle }}</h3>
               <p>{{ order.cinemaName }} {{ order.hallName }}</p>
               <p>{{ order.showTime }}</p>
-              <p>座位：{{ order.seats.join('、') }}</p>
+              <p>座位：{{ formatSeats(order.seats) }}</p>
             </div>
             <div class="order-price">
               <span class="price">¥{{ order.totalPrice }}</span>
               <div class="actions">
-                <el-button v-if="order.status === '待支付'" type="danger">立即支付</el-button>
-                <el-button v-if="order.status === '已完成'" type="primary" plain>查看详情</el-button>
+                <el-button v-if="order.status === '待支付'" type="danger" @click="payOrder(order.orderId)">立即支付</el-button>
+                <el-button v-if="order.status === '已完成'" type="primary" plain @click="goToDetail(order.orderId)">查看详情</el-button>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      <div v-if="!loading && orders.length === 0" class="empty">
+        <el-empty description="暂无订单" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { mockOrders } from '@/api/mockData'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { orderAPI } from '@/api/api'
 
+const router = useRouter()
 const activeTab = ref('all')
-const orders = ref(mockOrders)
-
-const filteredOrders = computed(() => {
-  if (activeTab.value === 'all') return orders.value
-  const statusMap = {
-    'unpaid': '待支付',
-    'completed': '已完成',
-    'cancelled': '已取消'
-  }
-  return orders.value.filter(o => o.status === statusMap[activeTab.value])
-})
+const orders = ref([])
+const loading = ref(true)
 
 const getStatusType = (status) => {
   const map = {
@@ -64,6 +65,49 @@ const getStatusType = (status) => {
   }
   return map[status] || 'info'
 }
+
+const formatSeats = (seats) => {
+  try {
+    const seatArray = JSON.parse(seats)
+    return seatArray.map(s => `${s.rowLabel}排${s.colLabel}座`).join('、')
+  } catch {
+    return seats
+  }
+}
+
+const loadOrders = async () => {
+  loading.value = true
+  try {
+    const statusMap = {
+      'all': 'all',
+      'unpaid': 'pending',
+      'completed': 'completed',
+      'cancelled': 'cancelled'
+    }
+    const response = await orderAPI.getUserOrders(1, { 
+      status: statusMap[activeTab.value] 
+    })
+    if (response.data.code === 200) {
+      orders.value = response.data.data.list
+    }
+  } catch (error) {
+    console.error('加载订单失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const goToDetail = (orderId) => {
+  router.push(`/order/${orderId}`)
+}
+
+const payOrder = (orderId) => {
+  router.push(`/order/${orderId}/pay`)
+}
+
+onMounted(() => {
+  loadOrders()
+})
 </script>
 
 <style scoped>

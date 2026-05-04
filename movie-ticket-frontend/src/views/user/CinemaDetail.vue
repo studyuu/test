@@ -39,10 +39,10 @@
         <div class="movie-list">
           <div 
             v-for="movie in movies" 
-            :key="movie.id" 
+            :key="movie.movieId" 
             class="movie-card"
-            :class="{ active: selectedMovieId === movie.id }"
-            @click="selectMovie(movie.id)"
+            :class="{ active: selectedMovieId === movie.movieId }"
+            @click="selectMovie(movie.movieId)"
           >
             <img :src="movie.poster" :alt="movie.title" />
             <div class="movie-info">
@@ -86,15 +86,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Location, Phone } from '@element-plus/icons-vue'
-import { mockMovies, mockSchedules } from '@/api/mockData'
-import { cinemaAPI } from '@/api/api'
+import { cinemaAPI, scheduleAPI, movieAPI } from '@/api/api'
 
 const route = useRoute()
 const router = useRouter()
 const cinemaId = parseInt(route.params.id)
 
 const cinema = ref({})
-const movies = ref(mockMovies)
+const movies = ref([])
+const schedules = ref([])
 const selectedMovieId = ref(null)
 const selectedDate = ref('今天')
 
@@ -110,17 +110,52 @@ const defaultDescription = computed(() => {
 })
 
 const selectedMovie = computed(() => {
-  return movies.value.find(m => m.id === selectedMovieId.value) || movies.value[0]
+  return movies.value.find(m => m.movieId === selectedMovieId.value) || movies.value[0] || {}
 })
 
 const showDates = ref(['今天', '明天', '后天'])
 
+const getSelectedDateStr = () => {
+  const today = new Date()
+  
+  let targetDate = new Date(today)
+  targetDate.setHours(0, 0, 0, 0)
+  
+  if (selectedDate.value === '明天') {
+    targetDate.setDate(targetDate.getDate() + 1)
+  } else if (selectedDate.value === '后天') {
+    targetDate.setDate(targetDate.getDate() + 2)
+  }
+  
+  const year = targetDate.getFullYear()
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0')
+  const day = String(targetDate.getDate()).padStart(2, '0')
+  
+  return `${year}-${month}-${day}`
+}
+
 const filteredSchedules = computed(() => {
   if (!selectedMovieId.value) return []
-  return mockSchedules.filter(s => 
+  
+  const now = new Date()
+  const selectedDateStr = getSelectedDateStr()
+  
+  let filtered = schedules.value.filter(s => 
     s.cinemaId === cinemaId && 
-    s.movieId === selectedMovieId.value
+    s.movieId === selectedMovieId.value &&
+    s.startTime.startsWith(selectedDateStr)
   )
+  
+  filtered = filtered.filter(schedule => {
+    if (!schedule.startTime) return false
+    const [datePart, timePart] = schedule.startTime.split(' ')
+    const [year, month, day] = datePart.split('-')
+    const [hour, minute, second] = timePart.split(':')
+    const scheduleTime = new Date(year, month - 1, day, hour, minute, second)
+    return scheduleTime > now
+  })
+  
+  return filtered
 })
 
 const selectMovie = (movieId) => {
@@ -152,11 +187,43 @@ const loadCinemaDetail = async () => {
   }
 }
 
-onMounted(() => {
-  loadCinemaDetail()
-  if (movies.value.length > 0) {
-    selectedMovieId.value = movies.value[0].id
+const loadSchedules = async () => {
+  try {
+    const response = await scheduleAPI.getSchedules()
+    if (response.data.code === 200) {
+      schedules.value = response.data.data.filter(s => s.cinemaId === cinemaId)
+    }
+  } catch (error) {
+    console.error('加载排期失败:', error)
   }
+}
+
+const loadMovies = async () => {
+  try {
+    const response = await movieAPI.getMovies({ status: 1 })
+    if (response.data.code === 200) {
+      const allMovies = response.data.data.content || response.data.data.list || response.data.data
+      
+      const cinemaMovieIds = new Set(schedules.value.map(s => s.movieId))
+      movies.value = allMovies.filter(m => cinemaMovieIds.has(m.movieId))
+    }
+  } catch (error) {
+    console.error('加载电影列表失败:', error)
+  }
+}
+
+const initPage = async () => {
+  await loadCinemaDetail()
+  await loadSchedules()
+  await loadMovies()
+  
+  if (movies.value.length > 0) {
+    selectedMovieId.value = movies.value[0].movieId
+  }
+}
+
+onMounted(() => {
+  initPage()
 })
 </script>
 

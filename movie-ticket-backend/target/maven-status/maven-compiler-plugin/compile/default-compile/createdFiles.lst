@@ -1,3 +1,4 @@
+com\example\movieticket\config\AliPayConfig.class
 com\example\movieticket\repository\SeatRepository.class
 com\example\movieticket\entity\WishList.class
 com\example\movieticket\repository\SysUserRepository.class
@@ -24,6 +25,7 @@ com\example\movieticket\service\MovieService.class
 com\example\movieticket\controller\MovieController.class
 com\example\movieticket\entity\Seat.class
 com\example\movieticket\controller\CommentController.class
+com\example\movieticket\controller\DashboardController.class
 com\example\movieticket\repository\MovieRepository.class
 com\example\movieticket\controller\BannerController.class
 com\example\movieticket\repository\BannerRepository.class
@@ -31,6 +33,7 @@ com\example\movieticket\entity\Cinema.class
 com\example\movieticket\service\CinemaService.class
 com\example\movieticket\entity\Order.class
 com\example\movieticket\repository\ScheduleRepository.class
+com\example\movieticket\controller\AliPayController.class
 com\example\movieticket\controller\UploadController.class
 com\example\movieticket\repository\WishListRepository.class
 com\example\movieticket\service\WishListService.class

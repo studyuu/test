@@ -114,6 +114,33 @@ export const movieAPI = {
   }
 }
 
+export const dashboardAPI = {
+  // 获取统计数据
+  getStats: () => {
+    return instance.get('/dashboard/stats')
+  },
+
+  // 获取订单趋势
+  getOrderTrend: () => {
+    return instance.get('/dashboard/order-trend')
+  },
+
+  // 获取影片类型分布
+  getMovieTypeDistribution: () => {
+    return instance.get('/dashboard/movie-type-distribution')
+  },
+
+  // 获取最近订单
+  getRecentOrders: (params) => {
+    return instance.get('/dashboard/recent-orders', { params })
+  },
+
+  // 获取订单详情
+  getOrderDetail: (orderId) => {
+    return instance.get('/dashboard/order-detail', { params: { orderId } })
+  }
+}
+
 export const cinemaAPI = {
   // 获取热门影院列表
   getHotCinemas: () => {
@@ -258,6 +285,21 @@ export const orderAPI = {
   // 获取订单详情
   getOrderById: (orderId) => {
     return instance.get(`/orders/${orderId}`)
+  },
+
+  // 获取用户订单列表
+  getUserOrders: (userId, params) => {
+    return instance.get(`/users/${userId}/orders`, { params })
+  },
+
+  // 获取订单详情（用户端）
+  getOrderDetail: (orderId) => {
+    return instance.get(`/orders/${orderId}/detail`)
+  },
+
+  // 刷新订单状态
+  refreshOrderStatus: (orderId) => {
+    return instance.post(`/orders/${orderId}/refresh`)
   }
 }
 
@@ -269,6 +311,18 @@ export const uploadAPI = {
     return instance.post('/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
+  }
+}
+
+export const alipayAPI = {
+  createPayment: (orderId) => {
+    return instance.get('/alipay/pay', { params: { orderId } })
+  },
+  queryPayment: (orderId) => {
+    return instance.get('/alipay/query', { params: { orderId } })
+  },
+  refund: (orderId, refundAmount) => {
+    return instance.post('/alipay/refund', { orderId, refundAmount })
   }
 }
 
