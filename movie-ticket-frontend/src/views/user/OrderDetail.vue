@@ -44,16 +44,51 @@
         
         <div class="order-actions">
           <el-button type="primary" @click="toggleTicketCode">{{ showTicketCode ? '隐藏取票码' : '查看取票码' }}</el-button>
-          <el-button v-if="orderDetail.status === '已完成'">申请退票</el-button>
+          <el-button v-if="orderDetail.status === '已完成'" @click="showRefundDialog = true">申请退票</el-button>
         </div>
       </el-card>
     </div>
+
+    <el-dialog title="申请退票" v-model="showRefundDialog" width="500px">
+      <div class="refund-dialog">
+        <div class="refund-rules">
+          <h4>退票规则</h4>
+          <ul>
+            <li>1. 退票申请需在电影开场前2小时提交</li>
+            <li>2. 退票审核通过后，款项将在3-5个工作日内原路退回</li>
+            <li>3. 退票可能产生一定的手续费，具体以审核结果为准</li>
+            <li>4. 已出票订单暂不支持退票</li>
+          </ul>
+        </div>
+        
+        <div class="refund-reason">
+          <label>退票原因 <span class="required">*</span></label>
+          <el-select v-model="refundReason" placeholder="请选择退票原因">
+            <el-option label="个人原因，无法按时观影" value="personal" />
+            <el-option label="场次时间变更" value="schedule_change" />
+            <el-option label="影院服务问题" value="service_issue" />
+            <el-option label="其他原因" value="other" />
+          </el-select>
+        </div>
+        
+        <div v-if="refundReason === 'other'" class="refund-remark">
+          <label>补充说明</label>
+          <el-input type="textarea" v-model="refundRemark" placeholder="请详细说明退票原因" rows="3" />
+        </div>
+      </div>
+      
+      <template #footer>
+        <el-button @click="showRefundDialog = false">取消</el-button>
+        <el-button type="primary" @click="submitRefund" :disabled="!refundReason">提交申请</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { orderAPI } from '@/api/api'
 import QRCode from 'qrcodejs2-fixes'
 
@@ -63,12 +98,17 @@ const showTicketCode = ref(false)
 const orderDetail = ref({})
 const qrCodeRef = ref(null)
 const ticketCode = ref('')
+const showRefundDialog = ref(false)
+const refundReason = ref('')
+const refundRemark = ref('')
 
 const getStatusType = (status) => {
   const map = {
     '待支付': 'warning',
     '已完成': 'success',
-    '已取消': 'info'
+    '已取消': 'info',
+    '退票中': 'warning',
+    '已退票': 'info'
   }
   return map[status] || 'info'
 }
@@ -124,6 +164,33 @@ const loadOrderDetail = async () => {
     console.error('加载订单详情失败:', error)
   } finally {
     loading.value = false
+  }
+}
+
+const submitRefund = async () => {
+  if (!refundReason.value) {
+    ElMessage.warning('请选择退票原因')
+    return
+  }
+
+  try {
+    const reason = refundReason.value === 'other' 
+      ? `${refundReason.value}: ${refundRemark.value || '无补充说明'}` 
+      : refundReason.value
+    
+    const response = await orderAPI.applyRefund(orderDetail.value.orderId, reason)
+    if (response.data.code === 200) {
+      ElMessage.success(response.data.message)
+      showRefundDialog.value = false
+      refundReason.value = ''
+      refundRemark.value = ''
+      orderDetail.value.status = '退票中'
+    } else {
+      ElMessage.error(response.data.message)
+    }
+  } catch (error) {
+    console.error('提交退票申请失败:', error)
+    ElMessage.error('提交退票申请失败')
   }
 }
 
@@ -253,5 +320,53 @@ onMounted(() => {
   margin-top: 30px;
   padding-top: 20px;
   border-top: 1px solid #eee;
+}
+
+.refund-dialog {
+  padding: 10px 0;
+}
+
+.refund-rules {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.refund-rules h4 {
+  margin: 0 0 12px 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.refund-rules ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.refund-rules li {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.8;
+}
+
+.refund-reason, .refund-remark {
+  margin-bottom: 16px;
+}
+
+.refund-reason label, .refund-remark label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+.required {
+  color: #ff6b6b;
+}
+
+.refund-remark textarea {
+  width: 100%;
 }
 </style>

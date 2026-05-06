@@ -26,4 +26,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findTop10ByOrderByCreateTimeDesc();
 
+    List<Order> findAllByOrderByCreateTimeDesc();
+
 }

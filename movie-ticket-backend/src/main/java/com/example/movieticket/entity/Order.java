@@ -30,6 +30,12 @@ public class Order {
     @Column(name = "status")
     private String status = "pending";
 
+    @Column(name = "refund_reason")
+    private String refundReason;
+
+    @Column(name = "refund_status")
+    private String refundStatus;
+
     @Column(name = "create_time")
     private LocalDateTime createTime;
 
@@ -117,5 +123,21 @@ public class Order {
 
     public void setUpdateTime(LocalDateTime updateTime) {
         this.updateTime = updateTime;
+    }
+
+    public String getRefundReason() {
+        return refundReason;
+    }
+
+    public void setRefundReason(String refundReason) {
+        this.refundReason = refundReason;
+    }
+
+    public String getRefundStatus() {
+        return refundStatus;
+    }
+
+    public void setRefundStatus(String refundStatus) {
+        this.refundStatus = refundStatus;
     }
 }

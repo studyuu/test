@@ -8,6 +8,8 @@
         <el-tab-pane label="待支付" name="unpaid" />
         <el-tab-pane label="已完成" name="completed" />
         <el-tab-pane label="已取消" name="cancelled" />
+        <el-tab-pane label="退票中" name="refunding" />
+        <el-tab-pane label="已退票" name="refunded" />
       </el-tabs>
 
       <div v-if="loading" class="loading">
@@ -35,6 +37,8 @@
                 <el-button v-if="order.status === '待支付'" type="primary" @click="payOrder(order.orderId)">立即支付</el-button>
                 <el-button v-if="order.status === '待支付'" plain  @click="cancelOrder(order.orderId)" style="margin-left: 0px;">取消订单</el-button>
                 <el-button v-if="order.status === '已完成'" type="primary" plain @click="goToDetail(order.orderId)">查看详情</el-button>
+                <el-button v-if="order.status === '退票中'" type="primary" plain @click="goToDetail(order.orderId)">查看详情</el-button>
+                <el-button v-if="order.status === '已取消' || order.status === '已退票'" type="danger" plain @click="deleteOrder(order.orderId)">删除订单</el-button>
               </div>
             </div>
           </div>
@@ -61,9 +65,11 @@ const loading = ref(true)
 
 const getStatusType = (status) => {
   const map = {
-    '待支付': 'warning',
+    '待支付': 'danger',
     '已完成': 'success',
-    '已取消': 'info'
+    '已取消': 'info',
+    '退票中': 'warning',
+    '已退票': 'info'
   }
   return map[status] || 'info'
 }
@@ -84,7 +90,9 @@ const loadOrders = async () => {
       'all': 'all',
       'unpaid': 'pending',
       'completed': 'completed',
-      'cancelled': 'cancelled'
+      'cancelled': 'cancelled',
+      'refunding': 'refunding',
+      'refunded': 'refunded'
     }
     const response = await orderAPI.getUserOrders(1, { 
       status: statusMap[activeTab.value] 
@@ -126,6 +134,29 @@ const cancelOrder = async (orderId) => {
     if (error !== 'cancel') {
       console.error('取消订单失败:', error)
       ElMessage.error('取消订单失败')
+    }
+  }
+}
+
+const deleteOrder = async (orderId) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该订单吗？删除后无法恢复。', '删除订单', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'danger'
+    })
+
+    const response = await orderAPI.deleteOrder(orderId)
+    if (response.data.code === 200) {
+      ElMessage.success('订单已删除')
+      loadOrders()
+    } else {
+      ElMessage.error(response.data.message)
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除订单失败:', error)
+      ElMessage.error('删除订单失败')
     }
   }
 }

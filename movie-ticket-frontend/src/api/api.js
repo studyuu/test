@@ -305,6 +305,41 @@ export const orderAPI = {
   // 取消订单
   cancelOrder: (orderId) => {
     return instance.post(`/orders/${orderId}/cancel`)
+  },
+
+  // 删除订单
+  deleteOrder: (orderId) => {
+    return instance.delete(`/orders/${orderId}`)
+  },
+
+  // 获取所有订单列表（后台管理）
+  getAllOrders: (params) => {
+    return instance.get('/admin/orders', { params })
+  },
+
+  // 获取订单详情（后台管理）
+  getOrderDetailForAdmin: (orderId) => {
+    return instance.get(`/admin/orders/${orderId}`)
+  },
+
+  // 取消订单（后台管理）
+  adminCancelOrder: (orderId) => {
+    return instance.post(`/admin/orders/${orderId}/cancel`)
+  },
+
+  // 申请退票
+  applyRefund: (orderId, reason) => {
+    return instance.post(`/orders/${orderId}/refund`, { reason })
+  },
+
+  // 审核退票（后台管理）
+  approveRefund: (orderId, action) => {
+    return instance.post(`/admin/orders/${orderId}/refund/approve`, { action })
+  },
+
+  // 获取退票申请列表（后台管理）
+  getRefundOrders: (params) => {
+    return instance.get('/admin/orders/refund/list', { params })
   }
 }
 

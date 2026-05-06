@@ -117,7 +117,7 @@
                 :type="getStatusType(row.status)" 
                 class="status-tag"
               >
-                {{ row.status }}
+                {{ getStatusText(row.status) }}
               </el-tag>
             </template>
           </el-table-column>
@@ -194,7 +194,7 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-tag :type="getStatusType(selectedOrder.status)">
-            {{ selectedOrder.status }}
+            {{ getStatusText(selectedOrder.status) }}
           </el-tag>
         </el-form-item>
         <el-form-item label="下单用户">
@@ -230,8 +230,30 @@ const searchOrderId = ref('')
 const allOrders = ref([])
 
 const getStatusType = (status) => {
-  const map = { '待支付': 'warning', '已完成': 'success', '已取消': 'info' }
+  const map = { 
+    '待支付': 'danger', 
+    '已完成': 'success', 
+    '已取消': 'info', 
+    '退票中': 'warning', 
+    '已退票': 'info',
+    'pending': 'danger',
+    'completed': 'success',
+    'cancelled': 'info',
+    'refunding': 'warning',
+    'refunded': 'info'
+  }
   return map[status] || 'info'
+}
+
+const getStatusText = (status) => {
+  const map = {
+    'pending': '待支付',
+    'completed': '已完成',
+    'cancelled': '已取消',
+    'refunding': '退票中',
+    'refunded': '已退票'
+  }
+  return map[status] || status
 }
 
 const formatSeats = (seats) => {

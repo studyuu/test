@@ -219,17 +219,11 @@ public class OrderController {
             String orderStatus = getOrderStatusWithTimeout(order);
 
             if (!"all".equals(status)) {
-                String statusCode = "pending";
-                if ("completed".equals(status)) {
-                    statusCode = "completed";
-                } else if ("cancelled".equals(status)) {
-                    statusCode = "cancelled";
-                }
                 String originalStatus = order.getStatus();
                 if ("pending".equals(originalStatus) && isOrderExpired(order)) {
                     originalStatus = "cancelled";
                 }
-                if (!statusCode.equals(originalStatus)) {
+                if (!status.equals(originalStatus)) {
                     continue;
                 }
             }
@@ -275,6 +269,10 @@ public class OrderController {
             orderStatus = "已完成";
         } else if ("cancelled".equals(orderStatus)) {
             orderStatus = "已取消";
+        } else if ("refunding".equals(orderStatus)) {
+            orderStatus = "退票中";
+        } else if ("refunded".equals(orderStatus)) {
+            orderStatus = "已退票";
         }
         return orderStatus;
     }
@@ -326,6 +324,8 @@ public class OrderController {
             result.put("createTime", order.getCreateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         }
 
+        result.put("refundReason", order.getRefundReason());
+
         String ticketCode = "QR" + orderId.substring(3);
         result.put("ticketCode", ticketCode);
 
@@ -368,6 +368,194 @@ public class OrderController {
     @PostMapping("/orders/{orderId}/cancel")
     public Map<String, Object> cancelOrder(@PathVariable String orderId) {
         Map<String, Object> response = new HashMap<>();
+        Optional<Order> orderOpt = orderRepository.findByOrderId(orderId);
+        if (!orderOpt.isPresent()) {
+            response.put("code", 404);
+            response.put("message", "订单不存在");
+            return response;
+        }
+
+        Order order = orderOpt.get();
+        if ("pending".equals(order.getStatus())) {
+            order.setStatus("cancelled");
+            orderRepository.save(order);
+            response.put("code", 200);
+            response.put("message", "订单已取消");
+        } else {
+            response.put("code", 400);
+            response.put("message", "只有待支付订单才能取消");
+        }
+        return response;
+    }
+
+    @DeleteMapping("/orders/{orderId}")
+    public Map<String, Object> deleteOrder(@PathVariable String orderId) {
+        Map<String, Object> response = new HashMap<>();
+        Optional<Order> orderOpt = orderRepository.findByOrderId(orderId);
+        if (!orderOpt.isPresent()) {
+            response.put("code", 404);
+            response.put("message", "订单不存在");
+            return response;
+        }
+
+        Order order = orderOpt.get();
+        String status = order.getStatus();
+
+        boolean canDelete = false;
+        if ("cancelled".equals(status) || "refunded".equals(status) || "已取消".equals(status) || "已退票".equals(status)) {
+            canDelete = true;
+        } else if ("pending".equals(status) && isOrderExpired(order)) {
+            canDelete = true;
+        }
+
+        if (canDelete) {
+            orderRepository.delete(order);
+            response.put("code", 200);
+            response.put("message", "订单已删除");
+        } else {
+            response.put("code", 400);
+            response.put("message", "只有已取消或已退票的订单才能删除");
+        }
+        return response;
+    }
+
+    @GetMapping("/admin/orders")
+    public Map<String, Object> getAllOrders(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(defaultValue = "all") String status,
+            @RequestParam(required = false) String orderId) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        List<Order> orders = orderRepository.findAllByOrderByCreateTimeDesc();
+
+        if (orderId != null && !orderId.trim().isEmpty()) {
+            orders = orders.stream()
+                    .filter(order -> order.getOrderId().contains(orderId.trim()))
+                    .collect(Collectors.toList());
+        }
+
+        if (!"all".equals(status)) {
+            orders = orders.stream().filter(order -> {
+                String originalStatus = order.getStatus();
+                if ("pending".equals(originalStatus) && isOrderExpired(order)) {
+                    originalStatus = "cancelled";
+                }
+                return status.equals(originalStatus);
+            }).collect(Collectors.toList());
+        }
+
+        int total = orders.size();
+        int start = (pageNum - 1) * pageSize;
+        int end = Math.min(start + pageSize, total);
+
+        List<Order> pageOrders = start < total ? orders.subList(start, end) : new ArrayList<>();
+
+        List<Map<String, Object>> orderList = new ArrayList<>();
+        for (Order order : pageOrders) {
+            Map<String, Object> orderItem = new HashMap<>();
+            orderItem.put("orderId", order.getOrderId());
+
+            Optional<Schedule> scheduleOpt = scheduleRepository.findById(order.getScheduleId());
+            if (scheduleOpt.isPresent()) {
+                Schedule schedule = scheduleOpt.get();
+                orderItem.put("cinemaName", schedule.getCinemaName());
+                orderItem.put("hallName", schedule.getHallName());
+                orderItem.put("showTime", schedule.getStartTime());
+
+                Optional<Movie> movieOpt = movieRepository.findById(schedule.getMovieId());
+                if (movieOpt.isPresent()) {
+                    Movie movie = movieOpt.get();
+                    orderItem.put("movieTitle", movie.getTitle());
+                }
+            }
+
+            orderItem.put("totalPrice", order.getTotalPrice());
+            orderItem.put("status", getOrderStatusWithTimeout(order));
+
+            if (order.getCreateTime() != null) {
+                orderItem.put("createTime",
+                        order.getCreateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            }
+
+            orderList.add(orderItem);
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", orderList);
+        data.put("total", total);
+
+        response.put("code", 200);
+        response.put("message", "success");
+        response.put("data", data);
+
+        return response;
+    }
+
+    @GetMapping("/admin/orders/{orderId}")
+    public Map<String, Object> getOrderDetailForAdmin(@PathVariable String orderId) {
+        Map<String, Object> response = new HashMap<>();
+
+        Optional<Order> orderOpt = orderRepository.findByOrderId(orderId);
+        if (!orderOpt.isPresent()) {
+            response.put("code", 404);
+            response.put("message", "订单不存在");
+            response.put("data", null);
+            return response;
+        }
+
+        Order order = orderOpt.get();
+        Optional<Schedule> scheduleOpt = scheduleRepository.findById(order.getScheduleId());
+        if (!scheduleOpt.isPresent()) {
+            response.put("code", 404);
+            response.put("message", "排期不存在");
+            response.put("data", null);
+            return response;
+        }
+
+        Schedule schedule = scheduleOpt.get();
+        Optional<Movie> movieOpt = movieRepository.findById(schedule.getMovieId());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("orderId", order.getOrderId());
+        result.put("userId", order.getUserId());
+
+        if (movieOpt.isPresent()) {
+            Movie movie = movieOpt.get();
+            result.put("movieTitle", movie.getTitle());
+            result.put("poster", movie.getPoster());
+        }
+
+        result.put("cinemaName", schedule.getCinemaName());
+        result.put("hallName", schedule.getHallName());
+        result.put("showTime", schedule.getStartTime());
+        result.put("endTime", schedule.getEndTime());
+        result.put("seats", order.getSeats());
+        result.put("totalPrice", order.getTotalPrice());
+
+        String orderStatus = getOrderStatusWithTimeout(order);
+        result.put("status", orderStatus);
+
+        if (order.getCreateTime() != null) {
+            result.put("createTime", order.getCreateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        }
+
+        result.put("refundReason", order.getRefundReason());
+
+        String ticketCode = "QR" + orderId.substring(3);
+        result.put("ticketCode", ticketCode);
+
+        response.put("code", 200);
+        response.put("message", "success");
+        response.put("data", result);
+
+        return response;
+    }
+
+    @PostMapping("/admin/orders/{orderId}/cancel")
+    public Map<String, Object> adminCancelOrder(@PathVariable String orderId) {
+        Map<String, Object> response = new HashMap<>();
 
         Optional<Order> orderOpt = orderRepository.findByOrderId(orderId);
         if (!orderOpt.isPresent()) {
@@ -379,17 +567,150 @@ public class OrderController {
 
         Order order = orderOpt.get();
 
-        if ("pending".equals(order.getStatus())) {
-            order.setStatus("cancelled");
-            orderRepository.save(order);
-            response.put("code", 200);
-            response.put("message", "订单已取消");
-            response.put("data", "cancelled");
+        order.setStatus("cancelled");
+        orderRepository.save(order);
+
+        response.put("code", 200);
+        response.put("message", "订单已取消");
+        response.put("data", "cancelled");
+
+        return response;
+    }
+
+    @PostMapping("/orders/{orderId}/refund")
+    public Map<String, Object> applyRefund(@PathVariable String orderId, @RequestBody Map<String, Object> request) {
+        Map<String, Object> response = new HashMap<>();
+
+        Optional<Order> orderOpt = orderRepository.findByOrderId(orderId);
+        if (!orderOpt.isPresent()) {
+            response.put("code", 404);
+            response.put("message", "订单不存在");
+            response.put("data", null);
+            return response;
+        }
+
+        Order order = orderOpt.get();
+
+        if (!"completed".equals(order.getStatus())) {
+            response.put("code", 400);
+            response.put("message", "只有已完成的订单才能申请退票");
+            response.put("data", null);
+            return response;
+        }
+
+        order.setStatus("refunding");
+        order.setRefundReason(request.get("reason") != null ? request.get("reason").toString() : "");
+        order.setRefundStatus("pending");
+        orderRepository.save(order);
+
+        response.put("code", 200);
+        response.put("message", "退票申请已提交，等待审核");
+        response.put("data", "refunding");
+
+        return response;
+    }
+
+    @PostMapping("/admin/orders/{orderId}/refund/approve")
+    public Map<String, Object> approveRefund(@PathVariable String orderId, @RequestBody Map<String, Object> request) {
+        Map<String, Object> response = new HashMap<>();
+
+        Optional<Order> orderOpt = orderRepository.findByOrderId(orderId);
+        if (!orderOpt.isPresent()) {
+            response.put("code", 404);
+            response.put("message", "订单不存在");
+            response.put("data", null);
+            return response;
+        }
+
+        Order order = orderOpt.get();
+
+        if (!"refunding".equals(order.getStatus())) {
+            response.put("code", 400);
+            response.put("message", "订单状态不正确，无法审批退票");
+            response.put("data", null);
+            return response;
+        }
+
+        String action = request.get("action") != null ? request.get("action").toString() : "";
+
+        if ("approve".equals(action)) {
+            order.setStatus("refunded");
+            order.setRefundStatus("approved");
+            response.put("message", "退票已批准");
+        } else if ("reject".equals(action)) {
+            order.setStatus("completed");
+            order.setRefundStatus("rejected");
+            order.setRefundReason("");
+            response.put("message", "退票已拒绝，订单恢复正常");
         } else {
             response.put("code", 400);
-            response.put("message", "订单状态不正确，无法取消");
-            response.put("data", order.getStatus());
+            response.put("message", "无效的操作类型");
+            response.put("data", null);
+            return response;
         }
+
+        orderRepository.save(order);
+
+        response.put("code", 200);
+        response.put("data", order.getStatus());
+
+        return response;
+    }
+
+    @GetMapping("/admin/orders/refund/list")
+    public Map<String, Object> getRefundOrders(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        List<Order> orders = orderRepository.findAllByOrderByCreateTimeDesc();
+        orders = orders.stream()
+                .filter(order -> "refunding".equals(order.getStatus()))
+                .collect(Collectors.toList());
+
+        int total = orders.size();
+        int start = (pageNum - 1) * pageSize;
+        int end = Math.min(start + pageSize, total);
+
+        List<Order> pageOrders = start < total ? orders.subList(start, end) : new ArrayList<>();
+
+        List<Map<String, Object>> orderList = new ArrayList<>();
+        for (Order order : pageOrders) {
+            Map<String, Object> orderItem = new HashMap<>();
+            orderItem.put("orderId", order.getOrderId());
+            orderItem.put("userId", order.getUserId());
+            orderItem.put("totalPrice", order.getTotalPrice());
+            orderItem.put("refundReason", order.getRefundReason());
+            orderItem.put("refundStatus", order.getRefundStatus());
+
+            Optional<Schedule> scheduleOpt = scheduleRepository.findById(order.getScheduleId());
+            if (scheduleOpt.isPresent()) {
+                Schedule schedule = scheduleOpt.get();
+                orderItem.put("cinemaName", schedule.getCinemaName());
+                orderItem.put("showTime", schedule.getStartTime());
+
+                Optional<Movie> movieOpt = movieRepository.findById(schedule.getMovieId());
+                if (movieOpt.isPresent()) {
+                    orderItem.put("movieTitle", movieOpt.get().getTitle());
+                }
+            }
+
+            if (order.getCreateTime() != null) {
+                orderItem.put("createTime",
+                        order.getCreateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            }
+
+            orderList.add(orderItem);
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", orderList);
+        data.put("total", total);
+
+        response.put("code", 200);
+        response.put("message", "success");
+        response.put("data", data);
 
         return response;
     }
