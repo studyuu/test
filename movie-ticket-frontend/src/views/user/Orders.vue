@@ -32,7 +32,8 @@
             <div class="order-price">
               <span class="price">¥{{ order.totalPrice }}</span>
               <div class="actions">
-                <el-button v-if="order.status === '待支付'" type="danger" @click="payOrder(order.orderId)">立即支付</el-button>
+                <el-button v-if="order.status === '待支付'" type="primary" @click="payOrder(order.orderId)">立即支付</el-button>
+                <el-button v-if="order.status === '待支付'" plain  @click="cancelOrder(order.orderId)" style="margin-left: 0px;">取消订单</el-button>
                 <el-button v-if="order.status === '已完成'" type="primary" plain @click="goToDetail(order.orderId)">查看详情</el-button>
               </div>
             </div>
@@ -50,6 +51,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { orderAPI } from '@/api/api'
 
 const router = useRouter()
@@ -103,6 +105,29 @@ const goToDetail = (orderId) => {
 
 const payOrder = (orderId) => {
   router.push(`/order/${orderId}/pay`)
+}
+
+const cancelOrder = async (orderId) => {
+  try {
+    await ElMessageBox.confirm('确定要取消该订单吗？', '取消订单', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    const response = await orderAPI.cancelOrder(orderId)
+    if (response.data.code === 200) {
+      ElMessage.success('订单已取消')
+      loadOrders()
+    } else {
+      ElMessage.error(response.data.message)
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('取消订单失败:', error)
+      ElMessage.error('取消订单失败')
+    }
+  }
 }
 
 onMounted(() => {

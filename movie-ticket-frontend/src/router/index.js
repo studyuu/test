@@ -48,7 +48,7 @@ const routes = [
         path: 'payment/success',
         name: 'PaymentSuccess',
         component: () => import('@/views/user/PaymentSuccess.vue'),
-        meta: { title: '支付成功', requiresAuth: true }
+        meta: { title: '支付成功', requiresAuth: false }
       },
       {
         path: 'orders',

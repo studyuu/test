@@ -13,6 +13,7 @@
     "axios": "^1.13.6",
     "element-plus": "^2.13.6",
     "pinia": "^3.0.4",
+    "qrcodejs2-fixes": "^0.0.2",
     "vue": "beta",
     "vue-router": "^4.6.4"
   },

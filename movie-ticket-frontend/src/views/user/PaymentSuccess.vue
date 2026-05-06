@@ -26,9 +26,14 @@
           </div>
         </div>
         
-        <div class="ticket-code" v-if="ticketCode">
-          <p class="ticket-label">您的取票码</p>
-          <div class="ticket-value">{{ ticketCode }}</div>
+        <div class="ticket-section" v-if="ticketCode">
+          <div class="qr-code-container">
+            <div ref="qrCodeRef" class="qr-code"></div>
+          </div>
+          <div class="ticket-code">
+            <p class="ticket-label">您的取票码</p>
+            <div class="ticket-value">{{ ticketCode }}</div>
+          </div>
         </div>
         
         <div class="action-buttons">
@@ -45,16 +50,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { orderAPI, alipayAPI } from '@/api/api'
+import { orderAPI } from '@/api/api'
+import { ElMessage } from 'element-plus'
+import QRCode from 'qrcodejs2-fixes'
 
 const route = useRoute()
 const router = useRouter()
 
 const orderInfo = ref(null)
 const ticketCode = ref('')
-const isRefreshing = ref(false)
+const qrCodeRef = ref(null)
 
 const getOrderInfoFromURL = () => {
   orderInfo.value = {
@@ -68,25 +75,38 @@ const getOrderInfoFromURL = () => {
   }
 }
 
+const generateQRCode = () => {
+  if (!qrCodeRef.value || !ticketCode.value) return
+  
+  const qrContent = JSON.stringify({
+    ticketCode: ticketCode.value,
+    orderId: orderInfo.value?.out_trade_no,
+    timestamp: Date.now()
+  })
+  
+  new QRCode(qrCodeRef.value, {
+    text: qrContent,
+    width: 128,
+    height: 128,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  })
+}
+
 const refreshOrderStatus = async () => {
   if (!orderInfo.value?.out_trade_no) return
   
-  isRefreshing.value = true
   try {
-    const response = await alipayAPI.queryPayment(orderInfo.value.out_trade_no)
+    const response = await orderAPI.refreshOrderStatus(orderInfo.value.out_trade_no)
     if (response.data.code === 200) {
-      const data = response.data.data
-      console.log('支付宝订单状态:', data)
-      
-      if (data.tradeStatus === 'TRADE_SUCCESS' || data.tradeStatus === 'TRADE_FINISHED') {
-        await orderAPI.refreshOrderStatus(orderInfo.value.out_trade_no)
-        console.log('订单状态已同步')
-      }
+      console.log('订单状态已更新为已完成')
+      ElMessage.success('订单状态已更新')
+    } else {
+      console.log('订单状态更新结果:', response.data.message)
     }
   } catch (error) {
     console.error('刷新订单状态失败:', error)
-  } finally {
-    isRefreshing.value = false
   }
 }
 
@@ -98,9 +118,11 @@ const goToHome = () => {
   router.push('/home')
 }
 
-onMounted(() => {
+onMounted(async () => {
   getOrderInfoFromURL()
-  refreshOrderStatus()
+  await refreshOrderStatus()
+  await nextTick()
+  generateQRCode()
 })
 </script>
 
@@ -177,25 +199,45 @@ onMounted(() => {
   font-weight: bold;
 }
 
-.ticket-code {
+.ticket-section {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 12px;
-  padding: 32px 24px;
+  padding: 24px;
   margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.qr-code-container {
+  background: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.qr-code {
+  width: 128px;
+  height: 128px;
+}
+
+.ticket-code {
+  text-align: center;
 }
 
 .ticket-label {
   color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .ticket-value {
   color: #fff;
-  font-size: 32px;
+  font-size: 24px;
   font-weight: bold;
   font-family: 'Courier New', monospace;
-  letter-spacing: 4px;
+  letter-spacing: 3px;
 }
 
 .action-buttons {

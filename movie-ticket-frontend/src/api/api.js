@@ -300,6 +300,11 @@ export const orderAPI = {
   // 刷新订单状态
   refreshOrderStatus: (orderId) => {
     return instance.post(`/orders/${orderId}/refresh`)
+  },
+
+  // 取消订单
+  cancelOrder: (orderId) => {
+    return instance.post(`/orders/${orderId}/cancel`)
   }
 }
 

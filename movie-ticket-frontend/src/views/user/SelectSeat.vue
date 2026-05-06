@@ -83,7 +83,7 @@
         </div>
         <div class="price-info">
           <span class="total-price">¥{{ totalPrice }}</span>
-          <el-button type="danger" size="large" @click="confirmOrder">
+          <el-button type="danger" size="large" :loading="submitting" @click="confirmOrder">
             确认选座
           </el-button>
         </div>
@@ -91,49 +91,56 @@
         </template>
     </div>
     
-    <!-- 支付二维码弹窗 -->
+    <!-- 订单详情确认弹窗 -->
     <el-dialog
-      v-model="showPaymentDialog"
-      title="订单支付"
-      width="400px"
+      v-model="showOrderDetailDialog"
+      title="确认订单"
+      width="500px"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
     >
-      <div class="payment-dialog">
-        <div class="payment-info">
-          <p class="order-title">{{ movie?.title }}</p>
-          <p class="order-seats">座位：{{ selectedSeats.map(s => `${s.rowLabel}排${s.colLabel}座`).join('、') }}</p>
-          <p class="order-price">¥{{ totalPrice }}</p>
-        </div>
-        
-        <div class="qrcode-container">
-          <div class="qrcode-placeholder">
-            <div class="qrcode-box">
-              <span class="qrcode-icon">📱</span>
-            </div>
-            <p class="qrcode-tip">请使用微信或支付宝扫码支付</p>
-            <p class="qrcode-hint">支付成功后自动跳转</p>
+      <div class="order-detail-dialog">
+        <div class="order-movie-info">
+          <img :src="movie?.poster" class="movie-poster" />
+          <div class="movie-detail">
+            <h3>{{ movie?.title }}</h3>
+            <p>{{ schedule?.cinemaName }}</p>
+            <p>{{ schedule?.hallName }} | {{ schedule?.startTime }}</p>
           </div>
         </div>
         
-        <div class="payment-status" v-if="paymentStatus === 'paying'">
-          <el-icon class="is-loading"><Loading /></el-icon>
-          <span>等待支付...</span>
+        <div class="order-seats">
+          <h4>座位信息</h4>
+          <div class="seat-list">
+            <el-tag
+              v-for="seat in selectedSeats"
+              :key="seat.row + '-' + seat.col"
+            >
+              {{ seat.rowLabel }}排{{ seat.colLabel }}座
+            </el-tag>
+          </div>
         </div>
-        <div class="payment-status success" v-else-if="paymentStatus === 'success'">
-          <el-icon color="#67C23A"><CircleCheck /></el-icon>
-          <span>支付成功！</span>
-        </div>
-        <div class="payment-status error" v-else-if="paymentStatus === 'error'">
-          <el-icon color="#F56C6C"><CircleClose /></el-icon>
-          <span>支付失败</span>
+        
+        <div class="order-summary">
+          <div class="summary-row">
+            <span>座位数量</span>
+            <span>{{ selectedSeats.length }} 个</span>
+          </div>
+          <div class="summary-row">
+            <span>单价</span>
+            <span>¥{{ schedule?.price }}</span>
+          </div>
+          <div class="summary-row total">
+            <span>应付金额</span>
+            <span class="total-price">¥{{ totalPrice }}</span>
+          </div>
         </div>
       </div>
       
       <template #footer>
-        <el-button @click="handlePaymentCancel">取消支付</el-button>
-        <el-button type="primary" @click="simulatePaymentSuccess" :loading="paymentStatus === 'paying'">
-          模拟支付成功
+        <el-button @click="handleOrderCancel">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="submitPayment">
+          确认支付
         </el-button>
       </template>
     </el-dialog>
@@ -144,8 +151,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Loading, CircleCheck, CircleClose } from '@element-plus/icons-vue'
-import { scheduleAPI, orderAPI } from '@/api/api'
+import { scheduleAPI, orderAPI, alipayAPI } from '@/api/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -157,9 +163,9 @@ const schedule = ref(null)
 const movie = ref(null)
 const seats = ref([])
 const selectedSeats = ref([])
-const showPaymentDialog = ref(false)
-const currentOrder = ref(null)
-const paymentStatus = ref('idle') // idle, paying, success, error
+const submitting = ref(false)
+const showOrderDetailDialog = ref(false)
+const currentOrderId = ref(null)
 
 const seatRows = computed(() => {
   const rows = [...new Set(seats.value.map(s => s.rowLabel))]
@@ -230,6 +236,8 @@ const confirmOrder = async () => {
     return
   }
 
+  submitting.value = true
+
   try {
     await ElMessageBox.confirm('确定要选择这些座位吗？', '确认选座', {
       confirmButtonText: '确定',
@@ -237,7 +245,7 @@ const confirmOrder = async () => {
       type: 'success'
     })
 
-    const response = await orderAPI.createOrder({
+    const createResponse = await orderAPI.createOrder({
       scheduleId: scheduleId,
       userId: 1,
       selectedSeats: selectedSeats.value.map(seat => ({
@@ -248,39 +256,65 @@ const confirmOrder = async () => {
       }))
     })
 
-    if (response.data.code === 200) {
-      currentOrder.value = response.data.data
-      paymentStatus.value = 'idle'
-      showPaymentDialog.value = true
+    if (createResponse.data.code === 200) {
+      const orderData = createResponse.data.data
+      currentOrderId.value = orderData.orderId
+      showOrderDetailDialog.value = true
     } else {
-      ElMessage.error(response.data.message)
+      ElMessage.error(createResponse.data.message)
     }
   } catch (error) {
     if (error !== 'cancel') {
       console.error('创建订单失败:', error)
       ElMessage.error('创建订单失败')
     }
+  } finally {
+    submitting.value = false
   }
 }
 
-const simulatePaymentSuccess = () => {
-  paymentStatus.value = 'paying'
+const submitPayment = async () => {
+  if (!currentOrderId.value) return
   
-  setTimeout(() => {
-    paymentStatus.value = 'success'
-    ElMessage.success('支付成功！')
+  submitting.value = true
+
+  try {
+    const payResponse = await alipayAPI.createPayment(currentOrderId.value)
     
-    setTimeout(() => {
-      showPaymentDialog.value = false
-      router.push(`/order/${currentOrder.value.orderId}`)
-    }, 1500)
-  }, 2000)
+    if (payResponse.data.code === 200) {
+      const data = payResponse.data.data
+      
+      if (typeof data === 'string') {
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = data
+        tempDiv.style.display = 'none'
+        document.body.appendChild(tempDiv)
+        
+        const form = tempDiv.querySelector('form')
+        if (form) {
+          form.submit()
+        } else {
+          document.write(data)
+          document.close()
+        }
+      } else {
+        ElMessage.error('支付数据格式不正确')
+      }
+    } else {
+      ElMessage.error(payResponse.data.message || '创建支付失败')
+    }
+  } catch (error) {
+    console.error('创建支付失败:', error)
+    ElMessage.error('创建支付失败')
+  } finally {
+    submitting.value = false
+    showOrderDetailDialog.value = false
+  }
 }
 
-const handlePaymentCancel = () => {
-  showPaymentDialog.value = false
-  paymentStatus.value = 'idle'
-  ElMessage.warning('您取消了支付')
+const handleOrderCancel = () => {
+  showOrderDetailDialog.value = false
+  currentOrderId.value = null
 }
 
 onMounted(() => {
@@ -505,84 +539,85 @@ onMounted(() => {
   font-weight: bold;
 }
 
-.payment-dialog {
-  text-align: center;
+.order-detail-dialog {
+  padding: 10px 0;
 }
 
-.payment-info {
-  margin-bottom: 30px;
+.order-movie-info {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
 }
 
-.payment-info .order-title {
+.movie-poster {
+  width: 80px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.movie-detail h3 {
   font-size: 18px;
   font-weight: bold;
   color: #333;
   margin-bottom: 8px;
 }
 
-.payment-info .order-seats {
+.movie-detail p {
   font-size: 14px;
   color: #666;
+  margin-bottom: 4px;
+}
+
+.order-seats {
+  margin-bottom: 20px;
+}
+
+.order-seats h4 {
+  font-size: 15px;
+  font-weight: bold;
+  color: #333;
   margin-bottom: 12px;
 }
 
-.payment-info .order-price {
-  font-size: 28px;
+.seat-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-summary {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.summary-row.total {
+  padding-top: 12px;
+  margin-top: 8px;
+  border-top: 1px dashed #ddd;
+  font-weight: bold;
+}
+
+.summary-row.total span:first-child {
+  color: #333;
+}
+
+.summary-row .total-price {
+  font-size: 24px;
   color: #ff6b6b;
   font-weight: bold;
 }
 
-.qrcode-container {
-  margin: 30px 0;
-}
-
-.qrcode-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.qrcode-box {
-  width: 200px;
-  height: 200px;
-  border: 2px dashed #ddd;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f9f9f9;
-}
-
-.qrcode-icon {
-  font-size: 60px;
-}
-
-.qrcode-tip {
-  margin-top: 16px;
-  font-size: 15px;
-  color: #666;
-}
-
-.qrcode-hint {
-  margin-top: 8px;
-  font-size: 13px;
-  color: #999;
-}
-
-.payment-status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 20px;
-  font-size: 15px;
-}
-
-.payment-status.success {
-  color: #67C23A;
-}
-
-.payment-status.error {
-  color: #F56C6C;
-}
 </style>

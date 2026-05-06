@@ -32,22 +32,12 @@
           </div>
           
           <div v-if="showTicketCode" class="ticket-section">
-            <div class="ticket-qr">
-              <div class="qr-placeholder">
-                <svg width="120" height="120" viewBox="0 0 120 120">
-                  <rect width="120" height="120" fill="#fff" stroke="#ddd" stroke-width="1"/>
-                  <rect x="10" y="10" width="20" height="20" fill="#333"/>
-                  <rect x="90" y="10" width="20" height="20" fill="#333"/>
-                  <rect x="10" y="90" width="20" height="20" fill="#333"/>
-                  <rect x="20" y="20" width="80" height="80" fill="#fff" stroke="#333" stroke-width="1"/>
-                  <rect v-for="i in 25" :key="i" 
-                    :x="28 + ((i-1) % 5) * 14" 
-                    :y="28 + Math.floor((i-1)/5) * 14" 
-                    width="8" height="8" 
-                    :fill="Math.random() > 0.5 ? '#333' : '#fff'"/>
-                </svg>
-              </div>
-              <p class="ticket-code">{{ orderDetail.ticketCode }}</p>
+            <div class="qr-code-container">
+              <div ref="qrCodeRef" class="qr-code"></div>
+            </div>
+            <div class="ticket-code">
+              <p class="ticket-label">您的取票码</p>
+              <div class="ticket-value">{{ ticketCode }}</div>
             </div>
           </div>
         </div>
@@ -62,14 +52,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { orderAPI } from '@/api/api'
+import QRCode from 'qrcodejs2-fixes'
 
 const route = useRoute()
 const loading = ref(true)
 const showTicketCode = ref(false)
 const orderDetail = ref({})
+const qrCodeRef = ref(null)
+const ticketCode = ref('')
 
 const getStatusType = (status) => {
   const map = {
@@ -89,8 +82,31 @@ const formatSeats = (seats) => {
   }
 }
 
-const toggleTicketCode = () => {
+const generateQRCode = () => {
+  if (!qrCodeRef.value || !ticketCode.value) return
+  
+  const qrContent = JSON.stringify({
+    ticketCode: ticketCode.value,
+    orderId: orderDetail.value?.orderId,
+    timestamp: Date.now()
+  })
+  
+  new QRCode(qrCodeRef.value, {
+    text: qrContent,
+    width: 128,
+    height: 128,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  })
+}
+
+const toggleTicketCode = async () => {
   showTicketCode.value = !showTicketCode.value
+  if (showTicketCode.value) {
+    await nextTick()
+    generateQRCode()
+  }
 }
 
 const loadOrderDetail = async () => {
@@ -100,6 +116,9 @@ const loadOrderDetail = async () => {
     const response = await orderAPI.getOrderDetail(orderId)
     if (response.data.code === 200) {
       orderDetail.value = response.data.data
+      if (orderDetail.value.orderId) {
+        ticketCode.value = 'QR' + orderDetail.value.orderId.substring(3)
+      }
     }
   } catch (error) {
     console.error('加载订单详情失败:', error)
@@ -190,30 +209,44 @@ onMounted(() => {
 }
 
 .ticket-section {
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 24px;
   margin-top: 20px;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
 }
 
-.ticket-qr {
-  display: inline-block;
-}
-
-.qr-placeholder {
+.qr-code-container {
   background: #fff;
-  padding: 10px;
+  padding: 12px;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.qr-code {
+  width: 128px;
+  height: 128px;
 }
 
 .ticket-code {
-  margin-top: 12px;
-  font-size: 18px;
+  text-align: center;
+}
+
+.ticket-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.ticket-value {
+  color: #fff;
+  font-size: 24px;
   font-weight: bold;
-  color: #333;
-  font-family: monospace;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 3px;
 }
 
 .order-actions {

@@ -364,4 +364,33 @@ public class OrderController {
 
         return response;
     }
+
+    @PostMapping("/orders/{orderId}/cancel")
+    public Map<String, Object> cancelOrder(@PathVariable String orderId) {
+        Map<String, Object> response = new HashMap<>();
+
+        Optional<Order> orderOpt = orderRepository.findByOrderId(orderId);
+        if (!orderOpt.isPresent()) {
+            response.put("code", 404);
+            response.put("message", "订单不存在");
+            response.put("data", null);
+            return response;
+        }
+
+        Order order = orderOpt.get();
+
+        if ("pending".equals(order.getStatus())) {
+            order.setStatus("cancelled");
+            orderRepository.save(order);
+            response.put("code", 200);
+            response.put("message", "订单已取消");
+            response.put("data", "cancelled");
+        } else {
+            response.put("code", 400);
+            response.put("message", "订单状态不正确，无法取消");
+            response.put("data", order.getStatus());
+        }
+
+        return response;
+    }
 }
