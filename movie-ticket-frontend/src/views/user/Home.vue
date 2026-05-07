@@ -23,43 +23,88 @@
       </el-carousel>
     </section>
 
-    <!-- 正在热映 -->
+    <!-- 正在热映和今日票房 -->
     <section class="section">
       <div class="container">
-        <div class="section-header">
-          <h2 class="section-title">
-            <el-icon size="28" color="#ff6b6b"><VideoCamera /></el-icon>
-            正在热映
-          </h2>
-          <router-link to="/movies" class="view-all">
-            查看全部 <el-icon><ArrowRight /></el-icon>
-          </router-link>
-        </div>
-        
-        <div class="movie-grid">
-          <div 
-            v-for="movie in hotMovies" 
-            :key="movie.id" 
-            class="movie-card"
-            @click="$router.push(`/movie/${movie.id}`)"
-          >
-            <div class="movie-poster">
-              <img :src="movie.poster" :alt="movie.title" />
-              <div class="movie-rating" v-if="movie.rating">
-                <el-rate :model-value="movie.rating / 2" disabled show-score :max="5" />
-                <span class="rating-score">{{ movie.rating }}</span>
-              </div>
-              <div class="movie-overlay">
-                <el-button type="danger" round>立即购票</el-button>
+        <div class="main-content">
+          <!-- 正在热映 -->
+          <div class="hot-movies-section">
+            <div class="section-header">
+              <h2 class="section-title">
+                <el-icon size="28" color="#ff6b6b"><VideoCamera /></el-icon>
+                正在热映
+              </h2>
+              <router-link to="/movies" class="view-all">
+                查看全部 <el-icon><ArrowRight /></el-icon>
+              </router-link>
+            </div>
+            
+            <div class="movie-grid">
+              <div 
+                v-for="movie in hotMovies.slice(0, 4)" 
+                :key="movie.id" 
+                class="movie-card"
+                @click="$router.push(`/movie/${movie.id}`)"
+              >
+                <div class="movie-poster">
+                  <img :src="movie.poster" :alt="movie.title" />
+                  <div class="movie-rating" v-if="movie.rating">
+                    <el-rate :model-value="movie.rating / 2" disabled show-score :max="5" />
+                    <span class="rating-score">{{ movie.rating }}</span>
+                  </div>
+                  <div class="movie-overlay">
+                    <el-button type="danger" round>立即购票</el-button>
+                  </div>
+                </div>
+                <div class="movie-info">
+                  <h3 class="movie-title">{{ movie.title }}</h3>
+                  <p class="movie-category">{{ movie.category }}</p>
+                  <p class="movie-price">
+                    <span class="price-label">起</span>
+                    <span class="price-value">¥{{ movie.price }}</span>
+                  </p>
+                </div>
               </div>
             </div>
-            <div class="movie-info">
-              <h3 class="movie-title">{{ movie.title }}</h3>
-              <p class="movie-category">{{ movie.category }}</p>
-              <p class="movie-price">
-                <span class="price-label">起</span>
-                <span class="price-value">¥{{ movie.price }}</span>
-              </p>
+          </div>
+          
+          <!-- 评分排行 -->
+          <div class="box-office-section">
+            <h2 class="section-title" style="margin-bottom: 20px;">
+              <el-icon size="28" color="#ff6b6b"><Star /></el-icon>
+              评分排行
+            </h2>
+            
+            <div class="box-office-list">
+              <div 
+                v-for="(item, index) in ratingList" 
+                :key="index" 
+                class="box-office-item"
+                :class="{ 'top-item': index === 0 }"
+                @click="$router.push(`/movie/${item.movieId}`)"
+              >
+                <div v-if="index === 0" class="top-item-content">
+                  <img :src="item.poster" :alt="item.title" class="top-poster" />
+                  <div class="top-info">
+                    <span class="rank-badge">1</span>
+                    <h4 class="movie-name">{{ item.title }}</h4>
+                    <p class="box-office-amount">{{ item.rating }}分</p>
+                  </div>
+                </div>
+                <div v-else class="other-item">
+                  <span class="rank-number">{{ index + 1 }}</span>
+                  <span class="movie-name">{{ item.title }}</span>
+                  <span class="box-office-amount">{{ item.rating }}分</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="box-office-footer">
+              <div class="total-box-office">
+                <div class="total-label">平均评分</div>
+                <div class="total-amount">{{ averageRating }}分</div>
+              </div>
+              <router-link to="/movies" class="view-more-box-office">查看更多</router-link>
             </div>
           </div>
         </div>
@@ -154,6 +199,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { mockMovies, mockCinemas } from '@/api/mockData'
 import { bannerAPI, movieAPI, cinemaAPI } from '@/api/api'
+import { VideoCamera, Calendar, Location, ArrowRight, Position, TrendCharts } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -175,11 +221,14 @@ onMounted(() => {
   loadHotMovies()
   loadComingMovies()
   loadCinemas()
+  loadBoxOffice()
 })
 
 const hotMovies = ref([])
 const comingMovies = ref([])
 const cinemas = ref([])
+const ratingList = ref([])
+const averageRating = ref('')
 
 // 加载热映电影数据
 const loadHotMovies = async () => {
@@ -216,6 +265,36 @@ const loadCinemas = async () => {
     cinemas.value = response.data.data
   } catch (error) {
     console.error('加载热门影院失败:', error)
+  }
+}
+
+// 加载评分排行数据
+const loadBoxOffice = async () => {
+  try {
+    const response = await movieAPI.getHotMovies()
+    if (response.data.code === 200) {
+      const movies = response.data.data.map(movie => ({
+        ...movie,
+        movieId: movie.movieId || movie.id,
+        rating: movie.rating
+      })).sort((a, b) => b.rating - a.rating).slice(0, 5)
+      
+      ratingList.value = movies
+      if (movies.length > 0) {
+        const avg = movies.reduce((sum, m) => sum + (m.rating || 0), 0) / movies.length
+        averageRating.value = avg.toFixed(1)
+      }
+    }
+  } catch (error) {
+    console.error('加载评分数据失败:', error)
+    ratingList.value = [
+      { movieId: 1, title: '流浪地球3', poster: 'https://neeko-copilot.bytedance.net/api/text_to_image?prompt=sci-fi%20movie%20poster%20space%20earth&image_size=portrait_4_3', rating: 9.6 },
+      { movieId: 2, title: '第二十条', rating: 9.2 },
+      { movieId: 3, title: '热辣滚烫', rating: 9.0 },
+      { movieId: 4, title: '飞驰人生2', rating: 8.8 },
+      { movieId: 5, title: '熊出没·逆转时空', rating: 8.5 }
+    ]
+    averageRating.value = '9.0'
   }
 }
 
@@ -295,6 +374,24 @@ const gotoCinemaDetail = (cinemaId) => {
   padding: 0 40px;
 }
 
+.main-content {
+  display: flex;
+  gap: 30px;
+}
+
+.hot-movies-section {
+  flex: 2;
+}
+
+.box-office-section {
+  flex: 1;
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  height: fit-content;
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -328,8 +425,8 @@ const gotoCinemaDetail = (cinemaId) => {
 /* 电影卡片网格 */
 .movie-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
 }
 
 .movie-card {
@@ -581,10 +678,141 @@ const gotoCinemaDetail = (cinemaId) => {
   font-size: 14px;
 }
 
+/* 票房榜单 */
+.box-office-list {
+  margin-bottom: 20px;
+}
+
+.box-office-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.box-office-item:hover {
+  background: #f8f9fa;
+}
+
+.box-office-item:last-child {
+  border-bottom: none;
+}
+
+.top-item-content {
+  display: flex;
+  gap: 12px;
+}
+
+.top-poster {
+  width: 60px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.top-info {
+  flex: 1;
+  position: relative;
+}
+
+.rank-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.other-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rank-number {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.rank-number:nth-child(-n+3) {
+  color: #ff6b6b;
+}
+
+.movie-name {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.box-office-amount {
+  color: #ff6b6b;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.box-office-footer {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.total-box-office {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.total-label {
+  background: #ff6b6b;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.total-amount {
+  font-size: 28px;
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+.view-more-box-office {
+  color: #ff6b6b;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.view-more-box-office:hover {
+  text-decoration: underline;
+}
+
 /* 响应式 */
 @media (max-width: 1200px) {
+  .main-content {
+    flex-direction: column;
+  }
+  
   .movie-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
   
   .coming-soon-list {

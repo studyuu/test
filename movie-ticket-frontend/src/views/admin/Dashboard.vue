@@ -354,7 +354,7 @@ const loadMovieTypeDistribution = async () => {
   try {
     const response = await dashboardAPI.getMovieTypeDistribution()
     if (response.data.code === 200) {
-      const colors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399']
+      const colors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#FFC107', '#722ED1']
       pieData.value = response.data.data.map((item, index) => ({
         label: item.type,
         value: item.percentage,

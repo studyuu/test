@@ -39,7 +39,7 @@ public class MovieService {
             String yearPattern = year != null && !"全部".equals(year) && !"更早".equals(year) ? year + "%" : null;
             String keywordPattern = keyword != null ? "%" + keyword + "%" : null;
             
-            Sort sort = Sort.by(Sort.Direction.DESC, "rating");
+            Sort sort = Sort.by(Sort.Direction.ASC, "id");
             
             if ("new".equals(sortBy)) {
                 sort = Sort.by(Sort.Direction.DESC, "releaseDate");
@@ -47,8 +47,8 @@ public class MovieService {
                 sort = Sort.by(Sort.Direction.DESC, "rating");
             } else if ("price".equals(sortBy)) {
                 sort = Sort.by(Sort.Direction.ASC, "price");
-            } else {
-                sort = Sort.by(Sort.Direction.DESC, "rating");
+            } else if ("id".equals(sortBy)) {
+                sort = Sort.by(Sort.Direction.ASC, "id");
             }
             
             Pageable pageable = PageRequest.of(page - 1, size, sort);

@@ -20,7 +20,7 @@ public class MovieController {
             @RequestParam(required = false) String year,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "rating") String sort,
+            @RequestParam(defaultValue = "movieId") String sort,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
         return movieService.getMoviesWithFilter(type, region, year, status, keyword, sort, page, size);

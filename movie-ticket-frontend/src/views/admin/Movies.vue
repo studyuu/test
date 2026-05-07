@@ -2,11 +2,26 @@
   <div class="admin-movies">
     <div class="page-header">
       <h2>影片管理</h2>
-      <el-button type="primary" @click="handleAddMovie">添加影片</el-button>
+      <div class="header-right">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="请输入影片名称搜索"
+          clearable
+          style="width: 250px; margin-right: 10px;"
+          @clear="handleSearch"
+          @keyup.enter="handleSearch"
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+        <el-button type="primary" @click="handleSearch" style="margin-right: 15px;">搜索</el-button>
+        <el-button type="primary" @click="handleAddMovie">添加影片</el-button>
+      </div>
     </div>
     
     <el-table :data="movies" border>
-      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="movieId" label="影片ID" width="120" />
       <el-table-column prop="title" label="影片名称" />
       <el-table-column prop="category" label="类型" width="120" />
       <el-table-column prop="duration" label="时长" width="100" />
@@ -19,7 +34,7 @@
       <el-table-column label="操作" width="180">
         <template #default="{ row }">
           <el-button type="primary" link @click="handleEditMovie(row)">编辑</el-button>
-          <el-button type="danger" link @click="handleDeleteMovie(row.id)">删除</el-button>
+          <el-button type="danger" link @click="handleDeleteMovie(row.movieId)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -61,13 +76,27 @@
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-select v-model="movieForm.status" placeholder="请选择状态">
-            <el-option label="上映中" value="1" />
-            <el-option label="即将上映" value="2" />
-            <el-option label="已下线" value="3" />
+            <el-option label="上映中" :value="1" />
+            <el-option label="即将上映" :value="2" />
+            <el-option label="已下线" :value="3" />
           </el-select>
         </el-form-item>
         <el-form-item label="海报" prop="poster">
-          <el-input v-model="movieForm.poster" placeholder="请输入海报URL" />
+          <el-upload
+            v-model:file-list="fileList"
+            :action="uploadUrl"
+            list-type="picture-card"
+            :on-preview="handlePictureCardPreview"
+            :on-remove="handleRemove"
+            :on-success="handleAvatarSuccess"
+            :before-upload="beforeAvatarUpload"
+            accept="image/*"
+          >
+            <el-icon><Plus /></el-icon>
+          </el-upload>
+          <el-dialog v-model="dialogVisibleImg" title="海报预览" width="400px">
+            <img w-full :src="dialogImageUrl" alt="海报预览" style="width: 100%" />
+          </el-dialog>
         </el-form-item>
         <el-form-item label="导演" prop="director">
           <el-input v-model="movieForm.director" placeholder="请输入导演" />
@@ -108,6 +137,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Search } from '@element-plus/icons-vue'
 import { movieAPI } from '@/api/api'
 import Pagination from '@/components/Pagination.vue'
 
@@ -120,6 +150,14 @@ const pagination = ref({
   pageSize: 10,
   total: 0
 })
+
+const searchKeyword = ref('')
+let searchTimer = null
+
+const uploadUrl = 'http://localhost:8080/api/upload'
+const fileList = ref([])
+const dialogVisibleImg = ref(false)
+const dialogImageUrl = ref('')
 
 const movieForm = ref({
   title: '',
@@ -155,7 +193,7 @@ const rules = {
     { required: true, message: '请选择状态', trigger: 'change' }
   ],
   poster: [
-    { required: true, message: '请输入海报URL', trigger: 'blur' }
+    { required: true, message: '请上传海报', trigger: 'change' }
   ],
   director: [
     { required: true, message: '请输入导演', trigger: 'blur' }
@@ -175,10 +213,16 @@ const rules = {
 // 加载影片列表
 const loadMovies = async () => {
   try {
-    const response = await movieAPI.getMovies({
+    const params = {
       pageNum: pagination.value.pageNum,
       pageSize: pagination.value.pageSize
-    })
+    }
+    // 如果有搜索关键词，添加到请求参数中
+    if (searchKeyword.value.trim()) {
+      params.keyword = searchKeyword.value.trim()
+    }
+    
+    const response = await movieAPI.getMovies(params)
     const data = response.data.data
     movies.value = data.content || data.list || data
     pagination.value.total = data.total || (data.content || data.list || data).length
@@ -188,10 +232,34 @@ const loadMovies = async () => {
   }
 }
 
+// 搜索处理
+const handleSearch = () => {
+  // 重置到第一页
+  pagination.value.pageNum = 1
+  loadMovies()
+}
+
+// 输入时防抖搜索
+const handleSearchInput = () => {
+  // 清除之前的定时器
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+  }
+  // 延迟300ms后搜索
+  searchTimer = setTimeout(() => {
+    handleSearch()
+  }, 300)
+}
+
 const handlePageChange = ({ pageNum, pageSize }) => {
   pagination.value.pageNum = pageNum
   pagination.value.pageSize = pageSize
   loadMovies()
+}
+
+// 计算序号，确保分页时序号连续
+const indexMethod = (index) => {
+  return (pagination.value.pageNum - 1) * pagination.value.pageSize + index + 1
 }
 
 // 打开添加影片弹窗
@@ -211,13 +279,29 @@ const handleAddMovie = () => {
     price: null,
     synopsis: ''
   }
+  fileList.value = []
   dialogVisible.value = true
 }
 
 // 打开编辑影片弹窗
 const handleEditMovie = (row) => {
   dialogTitle.value = '编辑影片'
-  movieForm.value = { ...row }
+  // 处理日期格式，确保 el-date-picker 能正确解析
+  let releaseDate = row.releaseDate
+  if (releaseDate && typeof releaseDate === 'string' && !releaseDate.includes('T')) {
+    // 如果是简单日期格式，转换为 Date 对象
+    releaseDate = new Date(releaseDate + 'T00:00:00')
+  }
+  movieForm.value = { 
+    ...row,
+    id: row.movieId,
+    releaseDate
+  }
+  if (row.poster) {
+    fileList.value = [{ name: row.title, url: row.poster }]
+  } else {
+    fileList.value = []
+  }
   dialogVisible.value = true
 }
 
@@ -239,6 +323,49 @@ const handleDeleteMovie = (id) => {
   })
 }
 
+// 海报上传成功
+const handleAvatarSuccess = (response, uploadFile) => {
+  if (response.code === 200) {
+    movieForm.value.poster = response.data.url
+    fileList.value = [uploadFile]
+    ElMessage.success('海报上传成功')
+  } else {
+    ElMessage.error('海报上传失败')
+  }
+}
+
+// 上传前验证
+const beforeAvatarUpload = (file) => {
+  const isImage = file.type.startsWith('image/')
+  if (!isImage) {
+    ElMessage.error('请上传图片文件')
+    return false
+  }
+  const isLt2M = file.size / 1024 / 1024 < 2
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB')
+    return false
+  }
+  return true
+}
+
+// 移除海报
+const removePoster = () => {
+  movieForm.value.poster = ''
+}
+
+// 图片预览
+const handlePictureCardPreview = (uploadFile) => {
+  dialogImageUrl.value = uploadFile.url
+  dialogVisibleImg.value = true
+}
+
+// 删除图片
+const handleRemove = (uploadFile) => {
+  movieForm.value.poster = ''
+  fileList.value = []
+}
+
 // 提交表单
 const handleSubmit = async () => {
   if (!movieFormRef.value) return
@@ -246,13 +373,29 @@ const handleSubmit = async () => {
   try {
     await movieFormRef.value.validate()
     
-    if (movieForm.value.id) {
+    // 处理日期格式
+    const formData = { ...movieForm.value }
+    if (formData.releaseDate) {
+      // 如果是日期对象，转换为字符串格式
+      if (typeof formData.releaseDate === 'object' && formData.releaseDate.toISOString) {
+        const date = formData.releaseDate
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        formData.releaseDate = `${year}-${month}-${day}`
+      } else if (typeof formData.releaseDate === 'string' && formData.releaseDate.includes('T')) {
+        // 如果是 ISO 格式的字符串，只取日期部分
+        formData.releaseDate = formData.releaseDate.split('T')[0]
+      }
+    }
+    
+    if (formData.id) {
       // 编辑影片
-      await movieAPI.updateMovie(movieForm.value.id, movieForm.value)
+      await movieAPI.updateMovie(formData.id, formData)
       ElMessage.success('编辑成功')
     } else {
       // 添加影片
-      await movieAPI.addMovieAlt(movieForm.value)
+      await movieAPI.addMovieAlt(formData)
       ElMessage.success('添加成功')
     }
     
@@ -286,7 +429,55 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
 .page-header h2 {
   margin: 0;
+}
+
+.poster-upload {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.avatar-uploader {
+  width: 120px;
+  height: 160px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-uploader:hover {
+  border-color: #409eff;
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.upload-icon {
+  color: #999;
+  font-size: 28px;
+}
+
+.remove-btn {
+  color: #ff6b6b;
+  margin-top: 4px;
+}
+
+.remove-btn:hover {
+  color: #ff4757;
 }
 </style>

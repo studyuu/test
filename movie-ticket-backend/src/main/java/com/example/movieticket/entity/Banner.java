@@ -18,4 +18,6 @@ public class Banner {
     
     @Column(name = "order_num")
     private Integer orderNum;
+    
+    private Integer status;
 }

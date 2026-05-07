@@ -21,6 +21,9 @@ public class BannerService {
     }
 
     public Banner saveBanner(Banner banner) {
+        if (banner.getStatus() == null) {
+            banner.setStatus(1);
+        }
         return bannerRepository.save(banner);
     }
 

@@ -12,7 +12,7 @@
       </template>
       
       <el-table :data="banners" style="width: 100%">
-        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column type="index" label="序号" width="80" />
         <el-table-column label="图片" width="120">
           <template #default="{ row }">
             <el-image

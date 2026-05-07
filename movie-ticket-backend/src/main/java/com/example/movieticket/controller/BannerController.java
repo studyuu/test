@@ -23,6 +23,10 @@ public class BannerController {
         List<Banner> validBanners = new ArrayList<>();
         for (Banner b : allBanners) {
             if (b.getOrderNum() != null && b.getOrderNum() > 0) {
+                // 确保status字段有值
+                if (b.getStatus() == null) {
+                    b.setStatus(1);
+                }
                 validBanners.add(b);
             }
         }
@@ -32,7 +36,11 @@ public class BannerController {
     // 根据ID获取轮播图
     @GetMapping("/{id}")
     public Banner getBannerById(@PathVariable Long id) {
-        return bannerService.getBannerById(id);
+        Banner banner = bannerService.getBannerById(id);
+        if (banner != null && banner.getStatus() == null) {
+            banner.setStatus(1);
+        }
+        return banner;
     }
 
     // 添加轮播图
