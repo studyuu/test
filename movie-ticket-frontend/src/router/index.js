@@ -139,6 +139,46 @@ const routes = [
         meta: { title: '评论管理' }
       }
     ]
+  },
+
+  {
+    path: '/cinema-admin',
+    name: 'CinemaAdminLayout',
+    component: () => import('@/views/cinema-admin/Layout.vue'),
+    redirect: '/cinema-admin/dashboard',
+    meta: { requiresAuth: true, requiresCinemaAdmin: true },
+    children: [
+      {
+        path: 'dashboard',
+        name: 'CinemaDashboard',
+        component: () => import('@/views/cinema-admin/Dashboard.vue'),
+        meta: { title: '经营概览' }
+      },
+      {
+        path: 'halls',
+        name: 'CinemaHalls',
+        component: () => import('@/views/cinema-admin/Halls.vue'),
+        meta: { title: '放映厅管理' }
+      },
+      {
+        path: 'schedules',
+        name: 'CinemaSchedules',
+        component: () => import('@/views/cinema-admin/Schedules.vue'),
+        meta: { title: '排期管理' }
+      },
+      {
+        path: 'orders',
+        name: 'CinemaOrders',
+        component: () => import('@/views/cinema-admin/Orders.vue'),
+        meta: { title: '订单查询' }
+      },
+      {
+        path: 'profile',
+        name: 'CinemaProfile',
+        component: () => import('@/views/cinema-admin/Profile.vue'),
+        meta: { title: '影院设置' }
+      }
+    ]
   }
 ]
 
@@ -158,6 +198,8 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     next('/login')
   } else if (to.meta.requiresAdmin && userStore.userInfo.role !== 'admin') {
+    next('/')
+  } else if (to.meta.requiresCinemaAdmin && userStore.userInfo.role !== 'cinema_admin') {
     next('/')
   } else {
     next()

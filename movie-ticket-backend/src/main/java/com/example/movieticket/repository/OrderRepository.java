@@ -28,4 +28,24 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findAllByOrderByCreateTimeDesc();
 
+    @Query("SELECT o FROM Order o JOIN Schedule s ON o.scheduleId = s.id WHERE s.cinemaId = :cinemaId ORDER BY o.createTime DESC")
+    List<Order> findByCinemaId(@Param("cinemaId") Long cinemaId);
+
+    @Query("SELECT o FROM Order o JOIN Schedule s ON o.scheduleId = s.id WHERE s.cinemaId = :cinemaId AND o.status = :status")
+    List<Order> findByCinemaIdAndStatus(@Param("cinemaId") Long cinemaId, @Param("status") String status);
+
+    @Query("SELECT SUM(o.totalPrice) FROM Order o JOIN Schedule s ON o.scheduleId = s.id WHERE s.cinemaId = :cinemaId AND o.createTime BETWEEN :start AND :end")
+    Double sumTotalPriceByCinemaIdAndCreateTimeBetween(@Param("cinemaId") Long cinemaId,
+            @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT o FROM Order o JOIN Schedule s ON o.scheduleId = s.id WHERE s.cinemaId = :cinemaId ORDER BY o.createTime DESC")
+    List<Order> findRecentOrdersByCinemaId(@Param("cinemaId") Long cinemaId);
+
+    @Query("SELECT s.movieId, SUM(o.totalPrice) as sales FROM Order o JOIN Schedule s ON o.scheduleId = s.id WHERE s.cinemaId = :cinemaId GROUP BY s.movieId ORDER BY sales DESC")
+    List<Object[]> getTopMoviesByCinemaId(@Param("cinemaId") Long cinemaId);
+
+    long countByScheduleId(Long scheduleId);
+
+    List<Order> findByScheduleId(Long scheduleId);
+
 }

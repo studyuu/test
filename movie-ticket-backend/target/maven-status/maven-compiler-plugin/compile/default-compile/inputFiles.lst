@@ -11,6 +11,7 @@ D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\c
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\repository\CommentRepository.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\service\WishListService.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\controller\BannerController.java
+D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\controller\CinemaAdminController.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\repository\MovieRepository.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\entity\Comment.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\repository\CommentLikeRepository.java
@@ -19,6 +20,7 @@ D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\c
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\controller\DashboardController.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\controller\UserController.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\config\DataInitializer.java
+D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\repository\HallRepository.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\service\CommentService.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\config\CorsFilter.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\repository\CinemaRepository.java
@@ -39,5 +41,6 @@ D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\c
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\repository\SeatRepository.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\controller\HomeController.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\service\CinemaService.java
+D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\entity\Hall.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\entity\SysUser.java
 D:\谭佳佳\Desktop\school\毕业论文-设计\test\movie-ticket-backend\src\main\java\com\example\movieticket\entity\CommentLike.java

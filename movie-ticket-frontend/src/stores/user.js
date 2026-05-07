@@ -14,8 +14,9 @@ export const useUserStore = defineStore('user', () => {
     }
     return true
   })
-  
+
   const isAdmin = computed(() => userInfo.value?.role === 'admin')
+  const isCinemaAdmin = computed(() => userInfo.value?.role === 'cinema_admin')
 
   const setToken = (newToken) => {
     token.value = newToken
@@ -61,6 +62,7 @@ export const useUserStore = defineStore('user', () => {
     expireTime,
     isLoggedIn,
     isAdmin,
+    isCinemaAdmin,
     setToken,
     setExpireTime,
     setUserInfo,

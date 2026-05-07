@@ -46,7 +46,7 @@ public class AuthController {
                     userInfo.put("email", user.getEmail());
                     userInfo.put("phone", user.getPhone());
                     userInfo.put("avatar", user.getAvatar());
-                    userInfo.put("role", user.getRole() != null && user.getRole().equals("admin") ? "admin" : "user");
+                    userInfo.put("role", user.getRole() != null ? user.getRole() : "user");
                     userInfo.put("token", token);
                     userInfo.put("expireTime", expireTime);
 
@@ -169,7 +169,7 @@ public class AuthController {
                 userInfo.put("email", user.getEmail());
                 userInfo.put("phone", user.getPhone());
                 userInfo.put("avatar", user.getAvatar());
-                userInfo.put("role", user.getRole() != null && user.getRole().equals("admin") ? "admin" : "user");
+                userInfo.put("role", user.getRole() != null ? user.getRole() : "user");
 
                 response.put("code", 200);
                 response.put("message", "success");

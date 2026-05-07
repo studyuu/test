@@ -308,6 +308,8 @@ const handleLogin = async () => {
       const role = response.data.data.role
       if (role === 'admin') {
         router.push('/admin/dashboard')
+      } else if (role === 'cinema_admin') {
+        router.push('/cinema-admin/dashboard')
       } else {
         router.push('/home')
       }

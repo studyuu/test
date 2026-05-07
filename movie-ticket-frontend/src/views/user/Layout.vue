@@ -31,7 +31,8 @@
                 <el-dropdown-menu>
                   <el-dropdown-item command="profile">个人中心</el-dropdown-item>
                   <el-dropdown-item command="orders">我的订单</el-dropdown-item>
-                  <el-dropdown-item v-if="userStore.isAdmin" command="admin">管理后台</el-dropdown-item>
+                  <el-dropdown-item v-if="userStore.isAdmin" command="admin">系统后台</el-dropdown-item>
+                  <el-dropdown-item v-if="userStore.isCinemaAdmin" command="cinemaAdmin">影院后台</el-dropdown-item>
                   <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -98,6 +99,9 @@ const handleCommand = (command) => {
       break
     case 'admin':
       router.push('/admin')
+      break
+    case 'cinemaAdmin':
+      router.push('/cinema-admin')
       break
     case 'logout':
       ElMessageBox.confirm('确定要退出登录吗？', '提示', {
