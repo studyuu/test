@@ -25,10 +25,21 @@
           
           <div class="detail-section">
             <p><strong>订单号：</strong>{{ orderDetail.orderId }}</p>
+            <p><strong>下单用户：</strong>{{ orderDetail.userName || '-' }}</p>
             <p><strong>下单时间：</strong>{{ orderDetail.createTime }}</p>
             <p><strong>场次：</strong>{{ orderDetail.showTime }} {{ orderDetail.hallName }}</p>
             <p><strong>座位：</strong>{{ formatSeats(orderDetail.seats) }}</p>
             <p><strong>总价：</strong><span class="price">¥{{ orderDetail.totalPrice }}</span></p>
+            <div class="refund-rules">
+              <h4>退票规则</h4>
+              <ul>
+                <li>1. 退票申请需在电影开场前2小时提交</li>
+                <li>2. 退票审核通过后，款项将在3-5个工作日内原路退回</li>
+                <li>3. 退票可能产生一定的手续费，具体以审核结果为准</li>
+                <li>4. 已出票订单暂不支持退票</li>
+              </ul>
+            </div>
+
           </div>
           
           <div v-if="showTicketCode" class="ticket-section">
@@ -44,7 +55,12 @@
         
         <div class="order-actions">
           <el-button type="primary" @click="toggleTicketCode">{{ showTicketCode ? '隐藏取票码' : '查看取票码' }}</el-button>
-          <el-button v-if="orderDetail.status === '已完成'" @click="showRefundDialog = true">申请退票</el-button>
+          <el-button 
+        v-if="orderDetail.status === '已完成'" 
+        :disabled="!canRefund" 
+        @click="showRefundDialog = true"
+        :title="!canRefund ? '电影开场前2小时内无法退票' : ''"
+      >申请退票</el-button>
         </div>
       </el-card>
     </div>
@@ -86,7 +102,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, nextTick, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { orderAPI } from '@/api/api'
@@ -101,6 +117,18 @@ const ticketCode = ref('')
 const showRefundDialog = ref(false)
 const refundReason = ref('')
 const refundRemark = ref('')
+
+const canRefund = computed(() => {
+  if (!orderDetail.value.showTime) return false
+  try {
+    const showTime = new Date(orderDetail.value.showTime.replace(/-/g, '/'))
+    const now = new Date()
+    const diffHours = (showTime - now) / (1000 * 60 * 60)
+    return diffHours >= 2
+  } catch {
+    return false
+  }
+})
 
 const getStatusType = (status) => {
   const map = {

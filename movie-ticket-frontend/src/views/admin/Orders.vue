@@ -63,6 +63,10 @@
           <span>{{ orderDetail.userId }}</span>
         </div>
         <div class="detail-row">
+          <span class="label">用户名称：</span>
+          <span>{{ orderDetail.userName || '-' }}</span>
+        </div>
+        <div class="detail-row">
           <span class="label">影片：</span>
           <span>{{ orderDetail.movieTitle }}</span>
         </div>

@@ -5,11 +5,13 @@ import com.example.movieticket.entity.Movie;
 import com.example.movieticket.entity.Order;
 import com.example.movieticket.entity.Schedule;
 import com.example.movieticket.entity.Seat;
+import com.example.movieticket.entity.SysUser;
 import com.example.movieticket.repository.CinemaRepository;
 import com.example.movieticket.repository.MovieRepository;
 import com.example.movieticket.repository.OrderRepository;
 import com.example.movieticket.repository.ScheduleRepository;
 import com.example.movieticket.repository.SeatRepository;
+import com.example.movieticket.repository.SysUserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +40,9 @@ public class OrderController {
 
     @Autowired
     private SeatRepository seatRepository;
+
+    @Autowired
+    private SysUserRepository sysUserRepository;
 
     private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -329,6 +334,11 @@ public class OrderController {
         String ticketCode = "QR" + orderId.substring(3);
         result.put("ticketCode", ticketCode);
 
+        Optional<SysUser> userOpt = sysUserRepository.findById(order.getUserId());
+        if (userOpt.isPresent()) {
+            result.put("userName", userOpt.get().getNickname() != null ? userOpt.get().getNickname() : userOpt.get().getUsername());
+        }
+
         response.put("code", 200);
         response.put("message", "success");
         response.put("data", result);
@@ -545,6 +555,11 @@ public class OrderController {
 
         String ticketCode = "QR" + orderId.substring(3);
         result.put("ticketCode", ticketCode);
+
+        Optional<SysUser> userOpt = sysUserRepository.findById(order.getUserId());
+        if (userOpt.isPresent()) {
+            result.put("userName", userOpt.get().getNickname() != null ? userOpt.get().getNickname() : userOpt.get().getUsername());
+        }
 
         response.put("code", 200);
         response.put("message", "success");
