@@ -94,23 +94,23 @@ export const movieAPI = {
   },
 
   // 添加想看
-  addWish: (movieId) => {
-    return instance.post(`/movies/${movieId}/wish`)
+  addWish: (movieId, userId) => {
+    return instance.post(`/movies/${movieId}/wish?userId=${userId}`)
   },
 
   // 取消想看
-  removeWish: (movieId) => {
-    return instance.delete(`/movies/${movieId}/wish`)
+  removeWish: (movieId, userId) => {
+    return instance.delete(`/movies/${movieId}/wish?userId=${userId}`)
   },
 
   // 检查是否已想看
-  checkWish: (movieId) => {
-    return instance.get(`/movies/${movieId}/wish`)
+  checkWish: (movieId, userId) => {
+    return instance.get(`/movies/${movieId}/wish?userId=${userId}`)
   },
 
   // 获取用户想看列表
-  getWishList: (params) => {
-    return instance.get('/movies/wishlist', { params })
+  getWishList: (userId, params) => {
+    return instance.get(`/movies/wishlist?userId=${userId}`, { params })
   }
 }
 
@@ -209,6 +209,21 @@ export const authAPI = {
   // 用户登录
   login: (data) => {
     return instance.post('/auth/login', data)
+  },
+
+  // 用户注册
+  register: (data) => {
+    return instance.post('/auth/register', data)
+  },
+
+  // 用户退出登录
+  logout: () => {
+    return instance.post('/auth/logout')
+  },
+
+  // 获取当前登录用户信息
+  getCurrentUser: () => {
+    return instance.get('/auth/current-user')
   }
 }
 

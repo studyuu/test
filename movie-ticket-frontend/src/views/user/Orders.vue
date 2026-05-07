@@ -55,10 +55,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { orderAPI } from '@/api/api'
 
 const router = useRouter()
+const userStore = useUserStore()
 const activeTab = ref('all')
 const orders = ref([])
 const loading = ref(true)
@@ -94,7 +96,8 @@ const loadOrders = async () => {
       'refunding': 'refunding',
       'refunded': 'refunded'
     }
-    const response = await orderAPI.getUserOrders(1, { 
+    const userId = userStore.userInfo.id || userStore.userInfo.userId || 1
+    const response = await orderAPI.getUserOrders(userId, { 
       status: statusMap[activeTab.value] 
     })
     if (response.data.code === 200) {

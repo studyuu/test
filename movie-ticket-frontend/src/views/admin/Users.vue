@@ -171,7 +171,8 @@ const handleSubmit = async () => {
         username: formData.value.username,
         nickname: formData.value.nickname,
         email: formData.value.email,
-        phone: formData.value.phone
+        phone: formData.value.phone,
+        role: formData.value.role
       }
       response = await userAPI.updateUser(editUserId.value, data)
     } else {

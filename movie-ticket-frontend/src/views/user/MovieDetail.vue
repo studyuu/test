@@ -258,8 +258,10 @@ const checkIsWished = async () => {
     return
   }
   
+  const userId = userStore.userInfo.id || userStore.userInfo.userId || 1
+  
   try {
-    const response = await movieAPI.checkWish(movieId.value)
+    const response = await movieAPI.checkWish(movieId.value, userId)
     if (response.data.code === 200) {
       isWished.value = response.data.data
     }
@@ -276,15 +278,17 @@ const toggleWish = async () => {
     return
   }
 
+  const userId = userStore.userInfo.id || userStore.userInfo.userId || 1
+
   try {
     if (isWished.value) {
-      const response = await movieAPI.removeWish(movieId.value)
+      const response = await movieAPI.removeWish(movieId.value, userId)
       if (response.data.code === 200) {
         isWished.value = false
         ElMessage.success('已取消想看')
       }
     } else {
-      const response = await movieAPI.addWish(movieId.value)
+      const response = await movieAPI.addWish(movieId.value, userId)
       if (response.data.code === 200) {
         isWished.value = true
         ElMessage.success('已添加到想看列表')

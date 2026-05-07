@@ -137,6 +137,9 @@ public class UserController {
                 if (request.containsKey("avatar")) {
                     user.setAvatar((String) request.get("avatar"));
                 }
+                if (request.containsKey("role")) {
+                    user.setRole((String) request.get("role"));
+                }
 
                 user.setUpdateTime(LocalDateTime.now());
                 SysUser updatedUser = userRepository.save(user);

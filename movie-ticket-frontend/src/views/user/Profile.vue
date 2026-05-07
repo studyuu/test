@@ -182,8 +182,9 @@ const saveProfile = async () => {
 }
 
 const loadWishList = async () => {
+  const userId = userStore.userInfo.id || userStore.userInfo.userId || 1
   try {
-    const response = await movieAPI.getWishList()
+    const response = await movieAPI.getWishList(userId)
     if (response.data.code === 200) {
       wishList.value = response.data.data.content || []
     }
@@ -201,8 +202,9 @@ const goToMovies = () => {
 }
 
 const removeFromWishList = async (movieId) => {
+  const userId = userStore.userInfo.id || userStore.userInfo.userId || 1
   try {
-    const response = await movieAPI.removeWish(movieId)
+    const response = await movieAPI.removeWish(movieId, userId)
     if (response.data.code === 200) {
       wishList.value = wishList.value.filter(m => m.movieId !== movieId)
       ElMessage.success('已从想看列表移除')

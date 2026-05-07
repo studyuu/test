@@ -13,33 +13,26 @@ public class WishListController {
     @Autowired
     private WishListService wishListService;
 
-    private Long getCurrentUserId() {
-        return 1L;
-    }
-
     @PostMapping("/movies/{movieId}/wish")
-    public Map<String, Object> addWish(@PathVariable Long movieId) {
-        Long userId = getCurrentUserId();
+    public Map<String, Object> addWish(@PathVariable Long movieId, @RequestParam Long userId) {
         return wishListService.addWish(userId, movieId);
     }
 
     @DeleteMapping("/movies/{movieId}/wish")
-    public Map<String, Object> removeWish(@PathVariable Long movieId) {
-        Long userId = getCurrentUserId();
+    public Map<String, Object> removeWish(@PathVariable Long movieId, @RequestParam Long userId) {
         return wishListService.removeWish(userId, movieId);
     }
 
     @GetMapping("/movies/{movieId}/wish")
-    public Map<String, Object> checkWish(@PathVariable Long movieId) {
-        Long userId = getCurrentUserId();
+    public Map<String, Object> checkWish(@PathVariable Long movieId, @RequestParam Long userId) {
         return wishListService.checkWish(userId, movieId);
     }
 
     @GetMapping("/movies/wishlist")
     public Map<String, Object> getWishList(
+            @RequestParam Long userId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Long userId = getCurrentUserId();
         return wishListService.getWishList(userId, page, size);
     }
 }

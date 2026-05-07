@@ -82,12 +82,7 @@ const routes = [
     component: () => import('@/views/user/Login.vue'),
     meta: { title: '登录' }
   },
-  {
-    path: '/register',
-    name: 'Register',
-    component: () => import('@/views/user/Register.vue'),
-    meta: { title: '注册' }
-  },
+
   {
     path: '/admin',
     name: 'AdminLayout',
@@ -158,7 +153,9 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
 
-  if (to.meta.requiresAuth && !userStore.token) {
+  userStore.checkTokenExpired()
+
+  if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     next('/login')
   } else if (to.meta.requiresAdmin && userStore.userInfo.role !== 'admin') {
     next('/')
