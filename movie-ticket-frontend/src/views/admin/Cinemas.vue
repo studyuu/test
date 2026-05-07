@@ -23,6 +23,14 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <Pagination
+      v-if="pagination.total > 0"
+      :current-page="pagination.pageNum"
+      :page-size="pagination.pageSize"
+      :total="pagination.total"
+      @change="handlePageChange"
+    />
     
     <!-- 添加/编辑影院弹窗 -->
     <el-dialog
@@ -83,11 +91,17 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { cinemaAPI } from '@/api/api'
+import Pagination from '@/components/Pagination.vue'
 
 const cinemas = ref([])
 const dialogVisible = ref(false)
 const dialogTitle = ref('添加影院')
 const cinemaFormRef = ref(null)
+const pagination = ref({
+  pageNum: 1,
+  pageSize: 10,
+  total: 0
+})
 
 const cinemaForm = ref({
   cinemaName: '',
@@ -117,12 +131,23 @@ const rules = {
 
 const loadCinemas = async () => {
   try {
-    const response = await cinemaAPI.getCinemas({})
-    cinemas.value = response.data.data.content
+    const response = await cinemaAPI.getCinemas({
+      pageNum: pagination.value.pageNum,
+      pageSize: pagination.value.pageSize
+    })
+    const data = response.data.data
+    cinemas.value = data.content || data.list || data
+    pagination.value.total = data.total || (data.content || data.list || data).length
   } catch (error) {
     ElMessage.error('加载影院失败')
     console.error('加载影院失败:', error)
   }
+}
+
+const handlePageChange = ({ pageNum, pageSize }) => {
+  pagination.value.pageNum = pageNum
+  pagination.value.pageSize = pageSize
+  loadCinemas()
 }
 
 const handleAddCinema = () => {

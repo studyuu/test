@@ -52,6 +52,14 @@
       </el-table-column>
     </el-table>
 
+    <Pagination
+      v-if="pagination.total > 0"
+      :current-page="pagination.pageNum"
+      :page-size="pagination.pageSize"
+      :total="pagination.total"
+      @change="handlePageChange"
+    />
+
     <el-dialog :title="editMode ? '更新排期' : '添加排期'" v-model="dialogVisible" width="500px">
       <el-form :model="formData" label-width="100px">
         <el-form-item label="影片" prop="movieId" required>
@@ -105,6 +113,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { scheduleAPI, movieAPI, cinemaAPI } from '@/api/api'
+import Pagination from '@/components/Pagination.vue'
 
 const schedules = ref([])
 const movies = ref([])
@@ -112,6 +121,11 @@ const cinemas = ref([])
 const searchKeyword = ref('')
 const status = ref('all')
 const dialogVisible = ref(false)
+const pagination = ref({
+  pageNum: 1,
+  pageSize: 10,
+  total: 0
+})
 const formData = ref({
   movieId: '',
   cinemaId: '',
@@ -160,13 +174,24 @@ const filteredSchedules = computed(() => {
 
 const loadSchedules = async () => {
   try {
-    const response = await scheduleAPI.getSchedules()
+    const response = await scheduleAPI.getSchedules({
+      pageNum: pagination.value.pageNum,
+      pageSize: pagination.value.pageSize
+    })
     if (response.data.code === 200) {
-      schedules.value = response.data.data
+      const data = response.data.data
+      schedules.value = data.content || data.list || data
+      pagination.value.total = data.total || (data.content || data.list || data).length
     }
   } catch (error) {
     console.error('加载排期列表失败:', error)
   }
+}
+
+const handlePageChange = ({ pageNum, pageSize }) => {
+  pagination.value.pageNum = pageNum
+  pagination.value.pageSize = pageSize
+  loadSchedules()
 }
 
 const loadMovies = async () => {

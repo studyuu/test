@@ -30,6 +30,14 @@
       </el-table-column>
     </el-table>
 
+    <Pagination
+      v-if="pagination.total > 0"
+      :current-page="pagination.pageNum"
+      :page-size="pagination.pageSize"
+      :total="pagination.total"
+      @change="handlePageChange"
+    />
+
     <el-dialog :title="editMode ? '更新用户' : '添加用户'" v-model="dialogVisible" width="500px">
       <el-form :model="formData" label-width="100px">
         <el-form-item label="用户名" prop="username">
@@ -77,9 +85,15 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { View, Hide } from '@element-plus/icons-vue'
 import { userAPI } from '@/api/api'
+import Pagination from '@/components/Pagination.vue'
 
 const users = ref([])
 const dialogVisible = ref(false)
+const pagination = ref({
+  pageNum: 1,
+  pageSize: 10,
+  total: 0
+})
 const formData = ref({
   username: '',
   password: '',
@@ -94,13 +108,24 @@ const showPassword = ref(false)
 
 const loadUsers = async () => {
   try {
-    const response = await userAPI.getUsers()
+    const response = await userAPI.getUsers({
+      pageNum: pagination.value.pageNum,
+      pageSize: pagination.value.pageSize
+    })
     if (response.data.code === 200) {
-      users.value = response.data.data
+      const data = response.data.data
+      users.value = data.content || data.list || data
+      pagination.value.total = data.total || (data.content || data.list || data).length
     }
   } catch (error) {
     console.error('加载用户列表失败:', error)
   }
+}
+
+const handlePageChange = ({ pageNum, pageSize }) => {
+  pagination.value.pageNum = pageNum
+  pagination.value.pageSize = pageSize
+  loadUsers()
 }
 
 const handleAdd = () => {

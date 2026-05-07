@@ -144,14 +144,12 @@
           </el-table-column>
         </el-table>
         <div class="pagination-container">
-          <el-pagination
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
+          <Pagination
             :current-page="pagination.pageNum"
-            :page-sizes="[10, 20, 50, 100]"
             :page-size="pagination.pageSize"
             :total="pagination.total"
-            layout="total, sizes, prev, pager, next, jumper"
+            @change="handlePageChange"
+            style="padding: 20px 0 0 0;"
           />
         </div>
       </div>
@@ -215,6 +213,7 @@
 import { ref, onMounted } from 'vue'
 import { Document, Money, User, VideoCamera } from '@element-plus/icons-vue'
 import { dashboardAPI } from '@/api/api'
+import Pagination from '@/components/Pagination.vue'
 
 const stats = ref([
   { title: '今日订单', value: '0', icon: Document, color: '#409EFF' },
@@ -305,6 +304,12 @@ const handleSizeChange = (val) => {
 
 const handleCurrentChange = (val) => {
   pagination.value.pageNum = val
+  loadRecentOrders()
+}
+
+const handlePageChange = ({ pageNum, pageSize }) => {
+  pagination.value.pageNum = pageNum
+  pagination.value.pageSize = pageSize
   loadRecentOrders()
 }
 
@@ -590,7 +595,6 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: 12px 0;
   border-top: 1px solid #ebeef5;
 }
 

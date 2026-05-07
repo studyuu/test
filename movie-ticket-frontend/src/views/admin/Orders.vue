@@ -48,6 +48,14 @@
       </el-table-column>
     </el-table>
 
+    <Pagination
+      v-if="pagination.total > 0"
+      :current-page="pagination.pageNum"
+      :page-size="pagination.pageSize"
+      :total="pagination.total"
+      @change="handlePageChange"
+    />
+
     <el-dialog title="订单详情" v-model="showDetail" width="500px">
       <div v-if="orderDetail" class="order-detail">
         <div class="detail-row">
@@ -118,6 +126,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { orderAPI } from '@/api/api'
+import Pagination from '@/components/Pagination.vue'
 
 const orders = ref([])
 const loading = ref(true)
@@ -125,6 +134,11 @@ const showDetail = ref(false)
 const orderDetail = ref(null)
 const searchOrderId = ref('')
 const statusFilter = ref('all')
+const pagination = ref({
+  pageNum: 1,
+  pageSize: 10,
+  total: 0
+})
 
 const getStatusType = (status) => {
   const map = { 
@@ -162,6 +176,8 @@ const loadOrders = async () => {
   loading.value = true
   try {
     const params = {
+      pageNum: pagination.value.pageNum,
+      pageSize: pagination.value.pageSize,
       status: statusFilter.value
     }
     if (searchOrderId.value.trim()) {
@@ -170,6 +186,7 @@ const loadOrders = async () => {
     const response = await orderAPI.getAllOrders(params)
     if (response.data.code === 200) {
       orders.value = response.data.data.list
+      pagination.value.total = response.data.data.total
     }
   } catch (error) {
     console.error('加载订单失败:', error)
@@ -177,6 +194,12 @@ const loadOrders = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handlePageChange = ({ pageNum, pageSize }) => {
+  pagination.value.pageNum = pageNum
+  pagination.value.pageSize = pageSize
+  loadOrders()
 }
 
 const viewDetail = async (orderId) => {

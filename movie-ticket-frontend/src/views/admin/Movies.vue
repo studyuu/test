@@ -23,6 +23,14 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <Pagination
+      v-if="pagination.total > 0"
+      :current-page="pagination.pageNum"
+      :page-size="pagination.pageSize"
+      :total="pagination.total"
+      @change="handlePageChange"
+    />
     
     <!-- 添加/编辑影片弹窗 -->
     <el-dialog
@@ -101,11 +109,17 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { movieAPI } from '@/api/api'
+import Pagination from '@/components/Pagination.vue'
 
 const movies = ref([])
 const dialogVisible = ref(false)
 const dialogTitle = ref('添加影片')
 const movieFormRef = ref(null)
+const pagination = ref({
+  pageNum: 1,
+  pageSize: 10,
+  total: 0
+})
 
 const movieForm = ref({
   title: '',
@@ -161,12 +175,23 @@ const rules = {
 // 加载影片列表
 const loadMovies = async () => {
   try {
-    const response = await movieAPI.getMovies({})
-    movies.value = response.data.data.content
+    const response = await movieAPI.getMovies({
+      pageNum: pagination.value.pageNum,
+      pageSize: pagination.value.pageSize
+    })
+    const data = response.data.data
+    movies.value = data.content || data.list || data
+    pagination.value.total = data.total || (data.content || data.list || data).length
   } catch (error) {
     ElMessage.error('加载影片失败')
     console.error('加载影片失败:', error)
   }
+}
+
+const handlePageChange = ({ pageNum, pageSize }) => {
+  pagination.value.pageNum = pageNum
+  pagination.value.pageSize = pageSize
+  loadMovies()
 }
 
 // 打开添加影片弹窗
