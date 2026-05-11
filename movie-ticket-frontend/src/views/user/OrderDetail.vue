@@ -33,7 +33,7 @@
             <div class="refund-rules">
               <h4>退票规则</h4>
               <ul>
-                <li>1. 退票申请需在电影开场前2小时提交</li>
+                <li>1. 退票申请需在电影开场前30分钟提交</li>
                 <li>2. 退票审核通过后，款项将在3-5个工作日内原路退回</li>
                 <li>3. 退票可能产生一定的手续费，具体以审核结果为准</li>
                 <li>4. 已出票订单暂不支持退票</li>
@@ -59,7 +59,7 @@
         v-if="orderDetail.status === '已完成'" 
         :disabled="!canRefund" 
         @click="showRefundDialog = true"
-        :title="!canRefund ? '电影开场前2小时内无法退票' : ''"
+        :title="!canRefund ? '电影开场前30分钟内无法退票' : ''"
       >申请退票</el-button>
         </div>
       </el-card>
@@ -70,7 +70,7 @@
         <div class="refund-rules">
           <h4>退票规则</h4>
           <ul>
-            <li>1. 退票申请需在电影开场前2小时提交</li>
+            <li>1. 退票申请需在电影开场前30分钟提交</li>
             <li>2. 退票审核通过后，款项将在3-5个工作日内原路退回</li>
             <li>3. 退票可能产生一定的手续费，具体以审核结果为准</li>
             <li>4. 已出票订单暂不支持退票</li>
@@ -123,8 +123,8 @@ const canRefund = computed(() => {
   try {
     const showTime = new Date(orderDetail.value.showTime.replace(/-/g, '/'))
     const now = new Date()
-    const diffHours = (showTime - now) / (1000 * 60 * 60)
-    return diffHours >= 2
+    const diffMinutes = (showTime - now) / (1000 * 60)
+    return diffMinutes >= 30
   } catch {
     return false
   }

@@ -152,9 +152,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { scheduleAPI, orderAPI, alipayAPI } from '@/api/api'
+import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 const scheduleId = parseInt(route.params.scheduleId)
 
 const loading = ref(true)
@@ -247,7 +249,7 @@ const confirmOrder = async () => {
 
     const createResponse = await orderAPI.createOrder({
       scheduleId: scheduleId,
-      userId: 1,
+      userId: userStore.userInfo.id || userStore.userInfo.userId,
       selectedSeats: selectedSeats.value.map(seat => ({
         row: seat.row,
         rowLabel: seat.rowLabel,

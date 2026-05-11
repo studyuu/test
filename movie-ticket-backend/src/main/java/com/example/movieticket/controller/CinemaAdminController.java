@@ -449,12 +449,14 @@ public class CinemaAdminController {
             Optional<Hall> hallOpt = hallRepository.findById(schedule.getHallId());
             if (hallOpt.isPresent()) {
                 schedule.setHallName(hallOpt.get().getHallName());
+            } else {
+                result.put("code", 400);
+                result.put("message", "放映厅不存在");
+                return result;
             }
 
-            Optional<Movie> movieOpt = movieRepository.findById(schedule.getMovieId());
-            if (movieOpt.isPresent()) {
-                schedule.setCinemaName(movieOpt.get().getTitle());
-            }
+            Optional<Cinema> cinemaOpt = cinemaRepository.findById(cinemaId);
+            cinemaOpt.ifPresent(c -> schedule.setCinemaName(cinemaOpt.get().getCinemaName()));
 
             schedule.setStartTime(request.get("startTime").toString());
             schedule.setEndTime(request.get("endTime").toString());

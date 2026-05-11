@@ -3,7 +3,7 @@
     <el-aside width="220px" class="sidebar">
       <div class="logo">
         <el-icon size="32" color="#fff"><VideoPlay /></el-icon>
-        <span>摆烂观影台</span>
+        <span>影票通</span>
       </div>
       <el-menu
         :default-active="$route.path"

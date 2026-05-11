@@ -4,7 +4,7 @@
       <div class="header-content">
         <div class="logo" @click="$router.push('/home')">
           <el-icon size="32" color="#ff6b6b"><VideoPlay /></el-icon>
-          <span class="logo-text">摆烂观影台</span>
+          <span class="logo-text">影票通</span>
         </div>
         
         <nav class="nav-menu">
@@ -58,7 +58,7 @@
       <div class="footer-content">
         <div class="footer-section">
           <h4>关于我们</h4>
-          <p>摆烂观影台是专业的票房倒卖处，为用户提供便捷的购票服务。</p>
+          <p>影票通是专业的票房倒卖处，为用户提供便捷的购票服务。</p>
         </div>
         <div class="footer-section">
           <h4>联系方式</h4>
@@ -75,7 +75,7 @@
         </div>
       </div>
       <div class="copyright">
-        © 2025 摆烂观影台 版权所有
+        © 2025 影票通 版权所有
       </div>
     </footer>
   </div>

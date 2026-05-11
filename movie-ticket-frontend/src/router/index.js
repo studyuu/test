@@ -82,6 +82,12 @@ const routes = [
     component: () => import('@/views/user/Login.vue'),
     meta: { title: '登录' }
   },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/user/Login.vue'),
+    meta: { title: '注册' }
+  },
 
   {
     path: '/admin',

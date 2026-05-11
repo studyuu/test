@@ -19,7 +19,7 @@
     </div>
 
     <el-table :data="filteredSchedules" border style="width: 100%">
-      <el-table-column prop="scheduleId" label="ID" width="80" />
+      <el-table-column type="index" label="序号" width="60" />
       <el-table-column prop="movieName" label="影片名称" />
       <el-table-column prop="hallName" label="放映厅" width="120" />
       <el-table-column prop="startTime" label="开始时间" width="160">
@@ -68,7 +68,7 @@
             <el-option
               v-for="movie in movies"
               :key="movie.movieId"
-              :label="movie.movieName"
+              :label="movie.title"
               :value="movie.movieId"
             />
           </el-select>
