@@ -202,6 +202,11 @@ export const commentAPI = {
   // 删除评论
   deleteComment: (id) => {
     return instance.delete(`/comments/${id}`)
+  },
+
+  // 根据影片ID重新计算评分（基于用户评论平均值）
+  recalculateMovieRating: (movieId) => {
+    return instance.put(`/movies/${movieId}/rating`)
   }
 }
 

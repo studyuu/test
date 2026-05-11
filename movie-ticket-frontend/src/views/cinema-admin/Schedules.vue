@@ -154,8 +154,7 @@ const formData = ref({
 
 const isExpired = (schedule) => {
   if (!schedule.endTime) return false
-  const endTime = new Date(schedule.endTime)
-  return endTime < new Date()
+  return new Date(schedule.endTime) < new Date()
 }
 
 const filteredSchedules = computed(() => {
@@ -164,11 +163,7 @@ const filteredSchedules = computed(() => {
     result = result.filter(s => s.movieName && s.movieName.includes(searchKeyword.value))
   }
   if (status.value !== 'all') {
-    result = result.filter(s => {
-      const isExpiredRow = isExpired(s)
-      if (isExpiredRow) return false
-      return s.status === parseInt(status.value)
-    })
+    result = result.filter(s => !isExpired(s) && s.status === parseInt(status.value))
   }
   return result
 })
@@ -183,11 +178,7 @@ const loadSchedules = async () => {
     const token = localStorage.getItem('token')
     const response = await axios.get('/api/cinema-admin/schedules', {
       headers: { Authorization: `Bearer ${token}` },
-      params: {
-        userId: userStore.userInfo.id,
-        pageNum: pagination.value.pageNum,
-        pageSize: pagination.value.pageSize
-      }
+      params: { userId: userStore.userInfo.id, pageNum: pagination.value.pageNum, pageSize: pagination.value.pageSize }
     })
     if (response.data.code === 200) {
       const data = response.data.data
@@ -238,14 +229,7 @@ const handlePageChange = ({ pageNum, pageSize }) => {
 const handleAdd = () => {
   editMode.value = false
   editScheduleId.value = null
-  formData.value = {
-    movieId: '',
-    hallId: '',
-    startTime: '',
-    endTime: '',
-    price: 0,
-    status: 1
-  }
+  formData.value = { movieId: '', hallId: '', startTime: '', endTime: '', price: 0, status: 1 }
   dialogVisible.value = true
 }
 
@@ -269,16 +253,31 @@ const handleSubmit = async () => {
     return
   }
 
+  if (new Date(formData.value.startTime) >= new Date(formData.value.endTime)) {
+    ElMessage.error('结束时间必须晚于开始时间')
+    return
+  }
+
   try {
     const token = localStorage.getItem('token')
+    const payload = {
+      movieId: Number(formData.value.movieId),
+      hallId: Number(formData.value.hallId),
+      startTime: formData.value.startTime,
+      endTime: formData.value.endTime,
+      price: Number(formData.value.price) || 0,
+      status: Number(formData.value.status) || 1,
+      cinemaId: userStore.userInfo.cinemaId ?? userStore.userInfo.id
+    }
+
     let response
     if (editMode.value) {
-      response = await axios.put(`/api/cinema-admin/schedules/${editScheduleId.value}`, formData.value, {
+      response = await axios.put(`/api/cinema-admin/schedules/${editScheduleId.value}`, payload, {
         headers: { Authorization: `Bearer ${token}` },
         params: { userId: userStore.userInfo.id }
       })
     } else {
-      response = await axios.post('/api/cinema-admin/schedules', formData.value, {
+      response = await axios.post('/api/cinema-admin/schedules', payload, {
         headers: { Authorization: `Bearer ${token}` },
         params: { userId: userStore.userInfo.id }
       })
@@ -289,11 +288,11 @@ const handleSubmit = async () => {
       dialogVisible.value = false
       loadSchedules()
     } else {
-      ElMessage.error(response.data.message)
+      ElMessage.error(response.data.message || '操作失败')
     }
   } catch (error) {
-    console.error('操作失败:', error)
-    ElMessage.error('操作失败')
+    const errMsg = error.response?.data?.message || error.message || ''
+    ElMessage.error(errMsg || '操作失败，请稍后重试')
   }
 }
 
@@ -315,7 +314,6 @@ const handleDelete = (row) => {
         ElMessage.error(response.data.message)
       }
     } catch (error) {
-      console.error('删除失败:', error)
       ElMessage.error('删除失败')
     }
   })

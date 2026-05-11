@@ -24,7 +24,7 @@
       <el-table-column label="操作" width="150">
         <template #default="{ row }">
           <el-button type="primary" link @click="handleView(row)">查看</el-button>
-          <el-button type="danger" link @click="handleDelete(row.id)">删除</el-button>
+          <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -109,17 +109,20 @@ const handleView = async (comment) => {
   }
 }
 
-const handleDelete = (id) => {
-  ElMessageBox.confirm('确定要删除该评论吗？', '提示', {
+const handleDelete = (comment) => {
+  ElMessageBox.confirm('确定要删除该评论吗？删除后将自动重新计算该影片的用户评分。', '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
     try {
-      const response = await commentAPI.deleteComment(id)
+      const response = await commentAPI.deleteComment(comment.id)
       if (response.data.code === 200) {
         ElMessage.success('删除成功')
         loadComments()
+        if (comment.movieId) {
+          await commentAPI.recalculateMovieRating(comment.movieId)
+        }
       } else {
         ElMessage.error(response.data.message || '删除失败')
       }

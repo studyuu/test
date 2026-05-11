@@ -398,7 +398,7 @@ const handleRegister = async () => {
       username: registerForm.username,
       password: registerForm.password,
       nickname: registerForm.nickname,
-      phone: registerForm.phone
+      phone: registerForm.phone.trim() || null
     })
     
     if (response.data.code === 200) {
@@ -412,11 +412,25 @@ const handleRegister = async () => {
       registerForm.nickname = ''
       registerForm.phone = ''
     } else {
-      ElMessage.error(response.data.message || '注册失败')
+      const msg = response.data.message || '注册失败'
+      if (msg.includes('uk_phone') || msg.includes('phone') || msg.includes('ConstraintViolation')) {
+        ElMessage.error('该手机号已被注册，请直接登录或使用其他手机号')
+      } else if (msg.includes('uk_username') || msg.includes('username')) {
+        ElMessage.error('该用户名已被使用，请更换用户名')
+      } else {
+        ElMessage.error(msg)
+      }
     }
   } catch (error) {
     console.error('注册失败:', error)
-    ElMessage.error('注册失败，请稍后重试')
+    const errMsg = error.response?.data?.message || error.message || ''
+    if (errMsg.includes('uk_phone') || errMsg.includes('phone') || errMsg.includes('ConstraintViolation')) {
+      ElMessage.error('该手机号已被注册，请直接登录或使用其他手机号')
+    } else if (errMsg.includes('uk_username') || errMsg.includes('username')) {
+      ElMessage.error('该用户名已被使用，请更换用户名')
+    } else {
+      ElMessage.error('注册失败，请稍后重试')
+    }
   }
   
   registerLoading.value = false

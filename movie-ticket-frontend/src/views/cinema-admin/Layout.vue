@@ -16,6 +16,10 @@
           <el-icon><Odometer /></el-icon>
           <span>经营概览</span>
         </el-menu-item>
+        <el-menu-item index="/cinema-admin/movies">
+          <el-icon><Film /></el-icon>
+          <span>影片管理</span>
+        </el-menu-item>
         <el-menu-item index="/cinema-admin/halls">
           <el-icon><Grid /></el-icon>
           <span>放映厅管理</span>
@@ -27,6 +31,10 @@
         <el-menu-item index="/cinema-admin/orders">
           <el-icon><Ticket /></el-icon>
           <span>订单查询</span>
+        </el-menu-item>
+        <el-menu-item index="/cinema-admin/comments">
+          <el-icon><ChatDotRound /></el-icon>
+          <span>评论管理</span>
         </el-menu-item>
         <el-menu-item index="/cinema-admin/profile">
           <el-icon><Setting /></el-icon>

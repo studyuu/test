@@ -17,6 +17,7 @@
         </el-input>
         <el-button type="primary" @click="handleSearch" style="margin-right: 15px;">搜索</el-button>
         <el-button type="primary" @click="handleAddMovie">添加影片</el-button>
+        <el-button type="warning" @click="handleRefreshAllRatings" :loading="refreshingRatings">刷新评分</el-button>
       </div>
     </div>
     
@@ -25,7 +26,16 @@
       <el-table-column prop="title" label="影片名称" />
       <el-table-column prop="category" label="类型" width="120" />
       <el-table-column prop="duration" label="时长" width="100" />
-      <el-table-column prop="rating" label="评分" width="100" />
+      <el-table-column prop="rating" label="评分" width="160">
+        <template #default="{ row }">
+          <div class="rating-cell">
+            <span class="rating-value">{{ row.rating }}</span>
+            <el-tag size="small" :type="row.hasUserRating ? 'success' : 'info'" class="rating-tag">
+              {{ row.hasUserRating ? '用户平均' : '初始评分' }}
+            </el-tag>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : row.status === 2 ? 'info' : 'warning'">{{ row.status === 1 ? '上映中' : row.status === 2 ? '即将上映' : '已下线' }}</el-tag>
@@ -138,7 +148,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
-import { movieAPI } from '@/api/api'
+import { movieAPI, commentAPI } from '@/api/api'
 import Pagination from '@/components/Pagination.vue'
 
 const movies = ref([])
@@ -152,6 +162,7 @@ const pagination = ref({
 })
 
 const searchKeyword = ref('')
+const refreshingRatings = ref(false)
 let searchTimer = null
 
 const uploadUrl = 'http://localhost:8080/api/upload'
@@ -234,9 +245,26 @@ const loadMovies = async () => {
 
 // 搜索处理
 const handleSearch = () => {
-  // 重置到第一页
   pagination.value.pageNum = 1
   loadMovies()
+}
+
+// 刷新所有影片评分（基于用户评论重新计算）
+const handleRefreshAllRatings = async () => {
+  refreshingRatings.value = true
+  try {
+    const promises = movies.value.map(movie =>
+      commentAPI.recalculateMovieRating(movie.movieId)
+    )
+    await Promise.allSettled(promises)
+    ElMessage.success('评分刷新完成')
+    loadMovies()
+  } catch (error) {
+    console.error('刷新评分失败:', error)
+    ElMessage.error('部分影片评分刷新失败')
+  } finally {
+    refreshingRatings.value = false
+  }
 }
 
 // 输入时防抖搜索
@@ -479,5 +507,21 @@ onMounted(() => {
 
 .remove-btn:hover {
   color: #ff4757;
+}
+
+.rating-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rating-value {
+  font-weight: 600;
+  font-size: 15px;
+  color: #ff6b6b;
+}
+
+.rating-tag {
+  flex-shrink: 0;
 }
 </style>

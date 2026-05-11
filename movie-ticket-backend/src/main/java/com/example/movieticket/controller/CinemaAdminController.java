@@ -462,6 +462,7 @@ public class CinemaAdminController {
             schedule.setEndTime(request.get("endTime").toString());
             schedule.setPrice(Double.parseDouble(request.get("price").toString()));
             schedule.setStatus(request.get("status") != null ? Integer.parseInt(request.get("status").toString()) : 1);
+            schedule.setIsDeleted(0);
 
             scheduleRepository.save(schedule);
 

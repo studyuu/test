@@ -301,6 +301,11 @@ const toggleWish = async () => {
 }
 
 const openCommentDialog = () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录后再发表评论')
+    router.push('/login')
+    return
+  }
   commentDialogVisible.value = true
 }
 

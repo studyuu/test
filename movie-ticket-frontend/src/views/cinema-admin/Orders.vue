@@ -90,7 +90,7 @@
         </el-descriptions-item>
         <el-descriptions-item label="用户">{{ currentOrder.userName }}</el-descriptions-item>
         <el-descriptions-item label="下单时间">{{ formatTime(currentOrder.createTime) }}</el-descriptions-item>
-        <el-descriptions-item label="支付方式">{{ currentOrder.payType === 1 ? '微信支付' : currentOrder.payType === 2 ? '支付宝' : '-' }}</el-descriptions-item>
+        <el-descriptions-item label="支付方式">{{ '支付宝支付' }}</el-descriptions-item>
       </el-descriptions>
       <template #footer>
         <el-button @click="detailVisible = false">关闭</el-button>

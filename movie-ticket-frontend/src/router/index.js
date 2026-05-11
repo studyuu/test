@@ -183,6 +183,18 @@ const routes = [
         name: 'CinemaProfile',
         component: () => import('@/views/cinema-admin/Profile.vue'),
         meta: { title: '影院设置' }
+      },
+      {
+        path: 'comments',
+        name: 'CinemaComments',
+        component: () => import('@/views/admin/Comments.vue'),
+        meta: { title: '评论管理' }
+      },
+      {
+        path: 'movies',
+        name: 'CinemaMovies',
+        component: () => import('@/views/admin/Movies.vue'),
+        meta: { title: '影片管理' }
       }
     ]
   }
