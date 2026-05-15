@@ -266,7 +266,7 @@ const handleSubmit = async () => {
       startTime: formData.value.startTime,
       endTime: formData.value.endTime,
       price: Number(formData.value.price) || 0,
-      status: Number(formData.value.status) || 1,
+      status: Number(formData.value.status ?? 1),
       cinemaId: userStore.userInfo.cinemaId ?? userStore.userInfo.id
     }
 

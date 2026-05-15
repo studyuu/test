@@ -2,9 +2,11 @@ package com.example.movieticket.service;
 
 import com.example.movieticket.entity.Comment;
 import com.example.movieticket.entity.CommentLike;
+import com.example.movieticket.entity.Movie;
 import com.example.movieticket.entity.SysUser;
 import com.example.movieticket.repository.CommentLikeRepository;
 import com.example.movieticket.repository.CommentRepository;
+import com.example.movieticket.repository.MovieRepository;
 import com.example.movieticket.repository.SysUserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,6 +30,9 @@ public class CommentService {
 
     @Autowired
     private SysUserRepository userRepository;
+
+    @Autowired
+    private MovieRepository movieRepository;
 
     private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -118,6 +123,12 @@ public class CommentService {
         map.put("avatar", comment.getAvatar());
         map.put("rating", comment.getRating());
         map.put("content", comment.getContent());
+
+        if (comment.getMovieId() != null) {
+            movieRepository.findById(comment.getMovieId()).ifPresent(movie -> {
+                map.put("movieTitle", movie.getTitle());
+            });
+        }
 
         if (comment.getImages() != null && !comment.getImages().isEmpty()) {
             try {

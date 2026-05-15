@@ -13,6 +13,11 @@
     
     <el-table :data="filteredComments" border>
       <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="movieTitle" label="影片名称" width="150">
+        <template #default="{ row }">
+          <span>{{ row.movieTitle || '-' }}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="userName" label="用户" width="120" />
       <el-table-column prop="content" label="评论内容" show-overflow-tooltip />
       <el-table-column prop="rating" label="评分" width="150">

@@ -419,7 +419,9 @@ const loadSchedules = () => {
   scheduleAPI.getSchedules({ movieId: movieId.value })
     .then(response => {
       if (response.data.code === 200) {
-        schedules.value = response.data.data.slice(0, 10)
+        schedules.value = response.data.data
+          .filter(s => s.status === 1 && new Date(s.endTime) > new Date())
+          .slice(0, 10)
         generateDateOptions()
       }
     })
