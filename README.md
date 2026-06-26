@@ -114,7 +114,6 @@ USE movie_ticket;
 ### 2. 后端启动
 
 修改后端数据库配置：
-- 文件路径：`movie-ticket-backend/src/main/resources/application.properties`
 - 修改数据库连接信息（用户名、密码）
 
 启动后端服务：
@@ -144,7 +143,7 @@ npm run dev
 
 1. 在支付宝开放平台创建沙箱应用
 2. 获取 AppID、私钥、公钥
-3. 修改配置文件：`movie-ticket-backend/src/main/java/com/example/movieticket/config/AliPayConfig.java`
+3. 修改配置文件
 4. 配置支付回调地址
 
 ## API 接口
