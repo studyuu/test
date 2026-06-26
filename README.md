@@ -76,7 +76,10 @@ test/
 
 > 截图请放置在 `screenshots/` 目录下，以下为占位符
 
-![首页](./screenshots/home.png)
+![首页]<img width="2560" height="1238" alt="image" src="https://github.com/user-attachments/assets/2a54bf2c-5f6e-409f-9544-9e0a80eb4096" />
+
+<img width="2560" height="1238" alt="image" src="https://github.com/user-attachments/assets/4898500c-9e3d-4333-9b0b-e8078277c99a" />
+
 
 ![选座购票](./screenshots/seat-selection.png)
 
