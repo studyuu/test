@@ -1,4 +1,4 @@
-<img width="1280" height="619" alt="20eea1559f99098198d9bb0bc319f729" src="https://github.com/user-attachments/assets/0eb8a893-9559-4b40-8e96-c75fe3e55c6b" /># CineNova 智慧票务平台（毕业设计·独立全栈开发）
+# CineNova 智慧票务平台（毕业设计·独立全栈开发）
 
 > 基于 Spring Boot + Vue3 的前后端分离电影票预订系统，支持用户购票、影院管理、后台运营三大模块
 
@@ -82,7 +82,7 @@ test/
 
 ![影片]<img width="2560" height="1238" alt="image" src="https://github.com/user-attachments/assets/24848aaf-ebe1-4829-953d-842cb93f914a" />
 
-![影片详情]<img width="2560" height="1238" alt="image" src="https://github.com/user-attachments/assets/eb7fb54b-3663-4749-890a-43d169b65aba" />
+![影片详情]<img width="1280" height="619" alt="20eea1559f99098198d9bb0bc319f729" src="https://github.com/user-attachments/assets/0eb8a893-9559-4b40-8e96-c75fe3e55c6b" />
 
 ![选座购票]<img width="2560" height="1254" alt="image" src="https://github.com/user-attachments/assets/2b1ccf9f-01aa-460d-9cca-62bd189e2f77" />
 <img width="2560" height="1299" alt="image" src="https://github.com/user-attachments/assets/cfc3af83-4c85-4609-8e07-8e5341701eae" />
