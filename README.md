@@ -1,4 +1,4 @@
-# CineNova 智慧票务平台（毕业设计·独立全栈开发）
+<img width="1280" height="619" alt="20eea1559f99098198d9bb0bc319f729" src="https://github.com/user-attachments/assets/0eb8a893-9559-4b40-8e96-c75fe3e55c6b" /># CineNova 智慧票务平台（毕业设计·独立全栈开发）
 
 > 基于 Spring Boot + Vue3 的前后端分离电影票预订系统，支持用户购票、影院管理、后台运营三大模块
 
@@ -80,12 +80,18 @@ test/
 
 <img width="2560" height="1238" alt="image" src="https://github.com/user-attachments/assets/4898500c-9e3d-4333-9b0b-e8078277c99a" />
 
+![影片]<img width="2560" height="1238" alt="image" src="https://github.com/user-attachments/assets/24848aaf-ebe1-4829-953d-842cb93f914a" />
 
-![选座购票](./screenshots/seat-selection.png)
+![影片详情]<img width="2560" height="1238" alt="image" src="https://github.com/user-attachments/assets/eb7fb54b-3663-4749-890a-43d169b65aba" />
 
-![后台仪表盘](./screenshots/dashboard.png)
+![选座购票]<img width="2560" height="1254" alt="image" src="https://github.com/user-attachments/assets/2b1ccf9f-01aa-460d-9cca-62bd189e2f77" />
+<img width="2560" height="1299" alt="image" src="https://github.com/user-attachments/assets/cfc3af83-4c85-4609-8e07-8e5341701eae" />
+<img width="2544" height="1383" alt="image" src="https://github.com/user-attachments/assets/ba2cc920-0dac-42d2-a5b1-ae2fe7dc8f1e" />
 
-![订单管理](./screenshots/order-management.png)
+![后台仪表盘]<img width="2560" height="1238" alt="image" src="https://github.com/user-attachments/assets/2035fc4a-34a0-47ac-99c8-2ab42bc072cf" />
+
+![订单管理]<img width="2560" height="1238" alt="image" src="https://github.com/user-attachments/assets/e1034500-a75b-491c-8104-43c258e84f05" />
+
 
 ## 本地运行
 
@@ -104,10 +110,6 @@ CREATE DATABASE movie_ticket CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE movie_ticket;
 ```
 
-执行初始化脚本：
-```bash
-mysql -u username -p movie_ticket < movie-ticket-backend/init_database.sql
-```
 
 ### 2. 后端启动
 
@@ -118,7 +120,6 @@ mysql -u username -p movie_ticket < movie-ticket-backend/init_database.sql
 启动后端服务：
 
 ```bash
-cd movie-ticket-backend
 mvn spring-boot:run
 ```
 
@@ -127,7 +128,6 @@ mvn spring-boot:run
 ### 3. 前端启动
 
 ```bash
-cd movie-ticket-frontend
 npm install
 npm run dev
 ```
@@ -137,14 +137,6 @@ npm run dev
 ### 4. 访问系统
 
 打开浏览器访问 `http://localhost:5173`
-
-### 默认账号
-
-| 角色 | 用户名 | 密码 |
-| :--- | :--- | :--- |
-| 普通用户 | user | 123456 |
-| 系统管理员 | admin | 123456 |
-| 影院管理员 | cinema | 123456 |
 
 ## 支付配置
 
@@ -157,7 +149,7 @@ npm run dev
 
 ## API 接口
 
-前端 API 封装位于 [api.js](file:///d:/谭佳佳/Desktop/school/毕业论文-设计/test/movie-ticket-frontend/src/api/api.js)，包含以下模块：
+前端 API 封装位于 [api.js]包含以下模块：
 - `movieAPI` - 影片相关接口
 - `orderAPI` - 订单相关接口
 - `cinemaAPI` - 影院相关接口
